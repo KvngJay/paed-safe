@@ -14,7 +14,7 @@
 // Update CACHE_NAME here whenever data.js version is bumped.
 // =============================================================================
 
-const CACHE_NAME = "paed-safe-v1.0.0";
+const CACHE_NAME = "paed-safe-v1.1.0";
 
 const FILES_TO_CACHE = [
   "./",

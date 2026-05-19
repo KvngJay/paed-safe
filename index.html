@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#2563eb">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="PaedSafe">
   <title>PaedSafe — Paediatric Anaesthesia Calculator</title>
   <link rel="manifest" href="./manifest.json">
@@ -13,40 +13,64 @@
 
   <style>
     /* =========================================================================
-       CSS CUSTOM PROPERTIES — colour system from 04_ui_ux_principles.md §2
-       All colours referenced by role, never hard-coded in rules below.
+       CSS CUSTOM PROPERTIES — v2 White / Blue / Red clinical theme
+       Colour semantics from 04_ui_ux_principles.md §2 — preserved exactly.
+       All clinical meaning mappings unchanged; palette inverted to light base.
        ========================================================================= */
     :root {
-      --bg:           #0d0d0d;
-      --surface:      #1a1a1a;
-      --surface2:     #242424;
-      --border:       #2563eb;
+      --bg:           #f8faff;
+      --bg-alt:       #eef2ff;
+      --surface:      #ffffff;
+      --surface2:     #f1f5f9;
+      --border:       #dbeafe;
+      --border-mid:   #bfdbfe;
       --primary:      #2563eb;
+      --primary-dark: #1d4ed8;
+      --primary-light:#eff6ff;
       --success:      #16a34a;
+      --success-bg:   #f0fdf4;
       --warning:      #d97706;
+      --warning-bg:   #fffbeb;
       --danger:       #dc2626;
+      --danger-bg:    #fef2f2;
+      --danger-dark:  #b91c1c;
       --neutral:      #6b7280;
-      --text:         #f9fafb;
-      --text-sec:     #9ca3af;
-      --emergency-bg: #1a0000;
+      --text:         #111827;
+      --text-sec:     #6b7280;
+      --text-light:   #9ca3af;
+      --emergency-bg: #fef2f2;
       --purple:       #7c3aed;
+      --purple-bg:    #f5f3ff;
 
       --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 
       --nav-h:    64px;
       --bar-h:    52px;
-      --radius:   12px;
+      --radius:   14px;
       --radius-sm:8px;
+      --radius-lg:20px;
+
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+      --shadow:    0 4px 12px rgba(37,99,235,0.08), 0 1px 3px rgba(0,0,0,0.06);
+      --shadow-lg: 0 10px 30px rgba(37,99,235,0.12), 0 4px 8px rgba(0,0,0,0.06);
     }
 
-    /* Light mode — identical contrast ratios */
-    body.light-mode {
-      --bg:       #f9fafb;
-      --surface:  #ffffff;
-      --surface2: #f3f4f6;
-      --text:     #111827;
-      --text-sec: #6b7280;
-      --emergency-bg: #fff1f2;
+    /* Dark mode override — minimal, keeps colour semantics */
+    body.dark-mode {
+      --bg:           #0d0f14;
+      --bg-alt:       #111827;
+      --surface:      #1a1f2e;
+      --surface2:     #242b3d;
+      --border:       #1e3a5f;
+      --border-mid:   #2563eb44;
+      --primary-light:#172554;
+      --text:         #f1f5f9;
+      --text-sec:     #94a3b8;
+      --text-light:   #64748b;
+      --emergency-bg: #1a0a0a;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+      --shadow:    0 4px 12px rgba(0,0,0,0.3);
+      --shadow-lg: 0 10px 30px rgba(0,0,0,0.4);
     }
 
     /* =========================================================================
@@ -73,7 +97,7 @@
       color: inherit;
     }
 
-    input[type="number"], input[type="range"] {
+    input[type="number"], input[type="range"], input[type="text"] {
       font-family: var(--font);
     }
 
@@ -91,137 +115,31 @@
       margin: 0 auto;
       position: relative;
       overflow: hidden;
+      background: var(--bg);
     }
 
     /* =========================================================================
-       SCREENS — only one visible at a time
+       SCREENS
        ========================================================================= */
     .screen {
       display: none;
       flex-direction: column;
       flex: 1;
       overflow: hidden;
+      background: var(--bg);
     }
     .screen.active { display: flex; }
 
-    /* =========================================================================
-       PATIENT BAR — always visible on calc screens
-       ========================================================================= */
-    #patient-bar {
-      display: none;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 16px;
-      height: var(--bar-h);
-      background: var(--surface);
-      border-bottom: 2px solid var(--border);
-      flex-shrink: 0;
-      gap: 8px;
-    }
-    #patient-bar.visible { display: flex; }
-
-    #patient-bar .patient-info {
-      font-size: 16px;
-      font-weight: 600;
-      color: var(--text);
-      white-space: nowrap;
-    }
-
-    #patient-bar .est-badge {
-      display: none;
-      background: var(--warning);
-      color: #000;
-      font-size: 11px;
-      font-weight: 700;
-      padding: 3px 7px;
-      border-radius: 4px;
-      letter-spacing: 0.5px;
-    }
-    #patient-bar .est-badge.visible { display: inline-block; }
-
-    #patient-bar .bar-actions {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
-
-    #patient-bar .btn-change {
-      font-size: 13px;
-      color: var(--primary);
-      padding: 6px 10px;
-      border-radius: var(--radius-sm);
-      border: 1px solid var(--primary);
-      min-height: 36px;
-    }
-
-    /* =========================================================================
-       NEONATE BANNER — persistent, cannot be dismissed
-       ========================================================================= */
-    #neonate-banner {
-      display: none;
-      background: var(--danger);
-      color: #fff;
-      font-size: 14px;
-      font-weight: 600;
-      padding: 8px 16px;
-      text-align: center;
-      flex-shrink: 0;
-    }
-    #neonate-banner.visible { display: block; }
-
-    /* =========================================================================
-       BOTTOM NAV
-       ========================================================================= */
-    #bottom-nav {
-      display: none;
-      height: var(--nav-h);
-      background: var(--surface);
-      border-top: 2px solid var(--border);
-      flex-shrink: 0;
-      flex-direction: row;
-    }
-    #bottom-nav.visible { display: flex; }
-
-    .nav-tab {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 3px;
-      padding: 6px 4px;
-      color: var(--neutral);
-      font-size: 11px;
-      font-weight: 500;
-      min-height: var(--nav-h);
-      transition: color 0.15s;
-      border-top: 3px solid transparent;
-    }
-    .nav-tab .tab-icon { font-size: 20px; line-height: 1; }
-    .nav-tab.active { color: var(--primary); border-top-color: var(--primary); }
-
-    /* Emergency tab — always red, never neutral */
-    .nav-tab[data-tab="emergency"] {
-      color: var(--danger) !important;
-      border-top-color: var(--danger) !important;
-    }
-    .nav-tab[data-tab="emergency"].active {
-      background: rgba(220, 38, 38, 0.08);
-    }
-
-    /* =========================================================================
-       SCROLLABLE CONTENT AREA
-       ========================================================================= */
     .scroll-area {
       flex: 1;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
       padding: 16px;
-      padding-bottom: 8px;
+      padding-bottom: 24px;
     }
 
     /* =========================================================================
-       FULL-SCREEN OVERLAY SCREENS (disclaimer, version mismatch, data error)
+       FULL-SCREEN OVERLAYS
        ========================================================================= */
     #screen-disclaimer,
     #screen-error,
@@ -229,21 +147,21 @@
       position: fixed;
       inset: 0;
       z-index: 1000;
-      background: var(--bg);
+      background: var(--surface);
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       padding: 32px 24px;
       text-align: center;
-      gap: 20px;
+      gap: 16px;
     }
 
     #screen-disclaimer.hidden,
     #screen-error.hidden,
     #screen-version-mismatch.hidden { display: none; }
 
-    .overlay-icon { font-size: 56px; }
+    .overlay-icon { font-size: 52px; }
 
     .overlay-title {
       font-size: 22px;
@@ -252,14 +170,16 @@
     }
 
     .overlay-body {
-      font-size: 16px;
+      font-size: 15px;
       color: var(--text-sec);
-      line-height: 1.6;
+      line-height: 1.65;
       max-width: 360px;
+      text-align: left;
     }
 
+    .overlay-body strong { color: var(--text); }
+
     .overlay-body ul {
-      text-align: left;
       padding-left: 20px;
       margin-top: 8px;
     }
@@ -267,12 +187,173 @@
     .overlay-body ul li { margin-bottom: 6px; }
 
     .overlay-footer {
-      font-size: 13px;
-      color: var(--neutral);
+      font-size: 12px;
+      color: var(--text-light);
+      margin-top: 4px;
     }
 
     /* =========================================================================
-       BUTTONS
+       PATIENT BAR — persistent on all calc screens
+       ========================================================================= */
+    #patient-bar {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--primary);
+      color: #fff;
+      padding: 0 16px;
+      height: var(--bar-h);
+      flex-shrink: 0;
+      gap: 8px;
+    }
+
+    #patient-bar.visible { display: flex; }
+
+    .patient-info {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 15px;
+      font-weight: 600;
+      flex: 1;
+      min-width: 0;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+
+    .est-badge {
+      display: none;
+      background: var(--warning);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      letter-spacing: 0.5px;
+      flex-shrink: 0;
+    }
+
+    .est-badge.visible { display: inline-flex; }
+
+    .bar-pid {
+      font-size: 12px;
+      opacity: 0.8;
+      font-weight: 400;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 80px;
+    }
+
+    .bar-actions {
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .btn-change {
+      background: rgba(255,255,255,0.2);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: 1px solid rgba(255,255,255,0.3);
+    }
+
+    .btn-emergency-bar {
+      background: var(--danger);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: none;
+    }
+
+    /* Neonate banner */
+    #neonate-banner {
+      display: none;
+      background: var(--danger);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      text-align: center;
+      padding: 8px 16px;
+      flex-shrink: 0;
+    }
+
+    #neonate-banner.visible { display: block; }
+
+    /* =========================================================================
+       BOTTOM NAV
+       ========================================================================= */
+    #bottom-nav {
+      display: none;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      height: var(--nav-h);
+      flex-shrink: 0;
+      box-shadow: 0 -2px 8px rgba(37,99,235,0.06);
+    }
+
+    #bottom-nav.visible { display: flex; }
+
+    .nav-tabs {
+      display: flex;
+      width: 100%;
+      height: 100%;
+    }
+
+    .nav-tab {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--text-light);
+      padding: 8px 4px;
+      border-top: 3px solid transparent;
+      transition: all 0.15s;
+    }
+
+    .nav-tab .nav-icon { font-size: 20px; }
+
+    .nav-tab.active {
+      color: var(--primary);
+      border-top-color: var(--primary);
+      background: var(--primary-light);
+    }
+
+    .nav-tab[data-tab="emergency"] {
+      color: var(--danger) !important;
+    }
+
+    .nav-tab[data-tab="emergency"].active {
+      border-top-color: var(--danger) !important;
+      background: var(--danger-bg) !important;
+    }
+
+    /* =========================================================================
+       FOOTER BAR
+       ========================================================================= */
+    #footer-bar {
+      display: none;
+      background: var(--surface2);
+      border-top: 1px solid var(--border);
+      padding: 6px 16px;
+      font-size: 11px;
+      color: var(--text-light);
+      text-align: center;
+      flex-shrink: 0;
+    }
+
+    #footer-bar.visible { display: block; }
+
+    /* =========================================================================
+       BUTTONS — shared
        ========================================================================= */
     .btn-primary {
       background: var(--primary);
@@ -283,9 +364,11 @@
       border-radius: var(--radius);
       width: 100%;
       min-height: 56px;
-      transition: opacity 0.15s;
+      box-shadow: 0 4px 14px rgba(37,99,235,0.3);
+      transition: all 0.15s;
     }
-    .btn-primary:active { opacity: 0.85; }
+    .btn-primary:active { opacity: 0.9; transform: scale(0.99); }
+    .btn-primary:disabled { background: var(--neutral); box-shadow: none; cursor: not-allowed; opacity: 0.6; }
 
     .btn-secondary {
       background: var(--surface2);
@@ -296,7 +379,8 @@
       border-radius: var(--radius);
       width: 100%;
       min-height: 52px;
-      border: 1px solid #333;
+      border: 1px solid var(--border-mid);
+      transition: all 0.15s;
     }
 
     .btn-danger {
@@ -308,620 +392,803 @@
       border-radius: var(--radius);
       width: 100%;
       min-height: 56px;
+      box-shadow: 0 4px 14px rgba(220,38,38,0.25);
     }
 
     .btn-outline {
       background: transparent;
       color: var(--primary);
       font-size: 15px;
-      font-weight: 500;
-      padding: 12px 20px;
+      font-weight: 600;
+      padding: 13px 20px;
       border-radius: var(--radius);
-      border: 1px solid var(--primary);
-      min-height: 48px;
+      width: 100%;
+      min-height: 50px;
+      border: 2px solid var(--primary);
+      transition: all 0.15s;
     }
+    .btn-outline:active { background: var(--primary-light); }
 
     /* =========================================================================
-       CARDS
+       UTILITY
        ========================================================================= */
+    .mt-4  { margin-top: 4px; }
+    .mt-8  { margin-top: 8px; }
+    .mt-12 { margin-top: 12px; }
+    .mt-16 { margin-top: 16px; }
+    .mt-24 { margin-top: 24px; }
+    .mb-8  { margin-bottom: 8px; }
+    .mb-12 { margin-bottom: 12px; }
+    .mb-16 { margin-bottom: 16px; }
+    .hidden { display: none !important; }
+
     .card {
       background: var(--surface);
+      border: 1px solid var(--border);
       border-radius: var(--radius);
       padding: 16px;
-      margin-bottom: 12px;
-      border: 1px solid #2a2a2a;
+      box-shadow: var(--shadow-sm);
     }
 
     .card-title {
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--text-sec);
+      font-size: 11px;
+      font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.8px;
+      color: var(--primary);
       margin-bottom: 10px;
+    }
+
+    .section-label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--text-light);
+      margin-bottom: 8px;
+      margin-top: 20px;
     }
 
     /* =========================================================================
-       PATIENT SETUP SCREEN
+       WARNING & ALERT BANNERS
        ========================================================================= */
-    #screen-setup .setup-header {
-      text-align: center;
-      padding: 24px 16px 8px;
-      flex-shrink: 0;
+    .warning-banner {
+      padding: 12px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 1.45;
+      margin-bottom: 10px;
     }
 
-    #screen-setup .setup-logo {
+    .warning-banner.danger {
+      background: var(--danger-bg);
+      color: var(--danger-dark);
+      border: 1px solid #fca5a5;
+    }
+
+    .warning-banner.amber {
+      background: var(--warning-bg);
+      color: #92400e;
+      border: 1px solid #fcd34d;
+    }
+
+    /* =========================================================================
+       SCREEN 1 — INTRO
+       ========================================================================= */
+    #screen-intro {
+      background: linear-gradient(160deg, #fff 0%, #eff6ff 50%, #dbeafe 100%);
+    }
+
+    .intro-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 28px;
+      text-align: center;
+      gap: 0;
+    }
+
+    .intro-logo-wrap {
+      width: 96px;
+      height: 96px;
+      background: var(--primary);
+      border-radius: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 32px rgba(37,99,235,0.35);
+      margin-bottom: 24px;
+    }
+
+    .intro-logo-wrap img {
+      width: 64px;
+      height: 64px;
+      object-fit: contain;
+    }
+
+    .intro-logo-fallback {
       font-size: 28px;
+      font-weight: 900;
+      color: #fff;
+      letter-spacing: -1px;
+      font-family: var(--font);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .intro-ecg {
+      width: 52px;
+      height: 14px;
+    }
+
+    .intro-title {
+      font-size: 36px;
       font-weight: 800;
       color: var(--primary);
       letter-spacing: -1px;
+      margin-bottom: 6px;
     }
 
-    #screen-setup .setup-tagline {
-      font-size: 14px;
+    .intro-subtitle {
+      font-size: 15px;
       color: var(--text-sec);
-      margin-top: 4px;
+      font-weight: 400;
+      margin-bottom: 32px;
+      line-height: 1.4;
     }
 
+    .intro-divider {
+      width: 40px;
+      height: 3px;
+      background: var(--primary);
+      border-radius: 2px;
+      margin: 0 auto 28px;
+      opacity: 0.3;
+    }
+
+    .intro-features {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 40px;
+    }
+
+    .intro-feature-chip {
+      background: var(--primary-light);
+      color: var(--primary);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 5px 12px;
+      border-radius: 20px;
+      border: 1px solid var(--border-mid);
+    }
+
+    .intro-cta-wrap {
+      width: 100%;
+    }
+
+    .intro-author {
+      margin-top: 20px;
+      font-size: 13px;
+      color: var(--text-light);
+    }
+
+    .intro-author strong {
+      color: var(--text-sec);
+      font-weight: 600;
+    }
+
+    .intro-version {
+      position: absolute;
+      bottom: 16px;
+      left: 0; right: 0;
+      text-align: center;
+      font-size: 11px;
+      color: var(--text-light);
+    }
+
+    /* =========================================================================
+       SCREEN 3 — PATIENT SETUP (v2 rework)
+       ========================================================================= */
+    .setup-header {
+      background: var(--primary);
+      color: #fff;
+      padding: 20px 20px 18px;
+      flex-shrink: 0;
+    }
+
+    .setup-header-title {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    .setup-header-sub {
+      font-size: 13px;
+      opacity: 0.8;
+      margin-top: 2px;
+    }
+
+    /* Input groups */
     .input-group {
-      margin-bottom: 20px;
+      margin-bottom: 14px;
     }
 
     .input-label {
-      font-size: 16px;
-      font-weight: 500;
-      color: var(--text);
-      margin-bottom: 10px;
       display: block;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--primary);
+      margin-bottom: 8px;
+    }
+
+    .text-input {
+      width: 100%;
+      padding: 14px 16px;
+      border: 1.5px solid var(--border-mid);
+      border-radius: var(--radius-sm);
+      font-size: 16px;
+      color: var(--text);
+      background: var(--surface);
+      transition: border-color 0.15s;
+      outline: none;
+    }
+
+    .text-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.08); }
+    .text-input::placeholder { color: var(--text-light); }
+
+    .age-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .age-input-wrap label {
+      display: block;
+      font-size: 12px;
+      color: var(--text-sec);
+      margin-bottom: 5px;
+      font-weight: 500;
+    }
+
+    .age-input-wrap input {
+      width: 100%;
+      padding: 13px 14px;
+      border: 1.5px solid var(--border-mid);
+      border-radius: var(--radius-sm);
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text);
+      background: var(--surface);
+      text-align: center;
+      outline: none;
+    }
+
+    .age-input-wrap input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.08); }
+
+    /* Weight display */
+    .weight-display-wrap {
+      position: relative;
     }
 
     .weight-display {
-      font-size: 48px;
-      font-weight: 700;
-      color: var(--text);
-      text-align: center;
-      margin-bottom: 8px;
-      cursor: pointer;
-      padding: 8px;
+      display: flex;
+      align-items: baseline;
+      justify-content: center;
+      gap: 4px;
+      padding: 18px 16px 12px;
+      background: var(--primary-light);
+      border: 2px solid var(--primary);
       border-radius: var(--radius-sm);
-      transition: background 0.15s;
+      cursor: pointer;
+      margin-bottom: 12px;
     }
-    .weight-display:active { background: var(--surface2); }
 
-    .weight-unit {
-      font-size: 22px;
-      font-weight: 400;
-      color: var(--text-sec);
+    .weight-display .wt-val {
+      font-size: 44px;
+      font-weight: 800;
+      color: var(--primary);
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .weight-display .wt-unit {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--primary);
+      opacity: 0.7;
+    }
+
+    .weight-source-pill {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 20px;
+      letter-spacing: 0.4px;
+    }
+
+    .weight-source-pill.actual {
+      background: var(--success-bg);
+      color: var(--success);
+      border: 1px solid #bbf7d0;
+    }
+
+    .weight-source-pill.estimated {
+      background: var(--warning-bg);
+      color: var(--warning);
+      border: 1px solid #fcd34d;
     }
 
     input[type="range"] {
+      -webkit-appearance: none;
       width: 100%;
       height: 6px;
-      -webkit-appearance: none;
-      appearance: none;
-      background: var(--surface2);
       border-radius: 3px;
+      background: var(--border-mid);
       outline: none;
-      margin: 8px 0;
+      margin-bottom: 6px;
     }
 
     input[type="range"]::-webkit-slider-thumb {
       -webkit-appearance: none;
-      appearance: none;
-      width: 28px;
-      height: 28px;
+      width: 26px;
+      height: 26px;
       border-radius: 50%;
       background: var(--primary);
       cursor: pointer;
-      box-shadow: 0 2px 6px rgba(37,99,235,0.4);
+      box-shadow: 0 2px 8px rgba(37,99,235,0.35);
+      border: 3px solid #fff;
     }
 
     .range-labels {
       display: flex;
       justify-content: space-between;
-      font-size: 12px;
-      color: var(--neutral);
-      margin-top: 4px;
-    }
-
-    .age-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-    }
-
-    .age-input-wrap {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .age-input-wrap label {
-      font-size: 14px;
-      color: var(--text-sec);
-    }
-
-    .age-input-wrap input[type="number"] {
-      width: 100%;
-      background: var(--surface2);
-      border: 1px solid #333;
-      border-radius: var(--radius-sm);
-      color: var(--text);
-      font-size: 24px;
-      font-weight: 600;
-      padding: 12px;
-      text-align: center;
-      min-height: 56px;
-    }
-
-    .age-input-wrap input[type="number"]:focus {
-      outline: none;
-      border-color: var(--primary);
-    }
-
-    .source-toggle {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 0;
-      border-radius: var(--radius-sm);
-      overflow: hidden;
-      border: 1px solid var(--primary);
-    }
-
-    .source-btn {
-      padding: 14px;
-      font-size: 16px;
-      font-weight: 600;
-      text-align: center;
-      color: var(--primary);
-      background: transparent;
-      transition: all 0.15s;
-      min-height: 52px;
-    }
-
-    .source-btn.active {
-      background: var(--primary);
-      color: #fff;
-    }
-
-    /* Quick Start */
-    .quickstart-label {
-      font-size: 13px;
-      color: var(--neutral);
-      text-align: center;
-      margin: 16px 0 10px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .quickstart-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-
-    .quickstart-btn {
-      background: var(--surface2);
-      border: 1px solid #333;
-      border-radius: var(--radius-sm);
-      padding: 14px 10px;
-      text-align: center;
-      min-height: 56px;
-    }
-
-    .quickstart-btn .qs-weight {
-      font-size: 20px;
-      font-weight: 700;
-      color: var(--text);
-      display: block;
-    }
-
-    .quickstart-btn .qs-label {
-      font-size: 12px;
-      color: var(--text-sec);
-      display: block;
-      margin-top: 2px;
-    }
-
-    /* Resume prompt */
-    #resume-prompt {
-      background: var(--surface);
-      border: 1px solid var(--primary);
-      border-radius: var(--radius);
-      padding: 16px;
-      margin-bottom: 16px;
-    }
-
-    #resume-prompt p {
-      font-size: 15px;
-      color: var(--text);
-      margin-bottom: 12px;
-    }
-
-    #resume-prompt .resume-actions {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-
-    /* =========================================================================
-       WARNING BANNERS
-       ========================================================================= */
-    .warning-banner {
-      padding: 12px 16px;
-      font-size: 15px;
-      font-weight: 600;
-      line-height: 1.4;
-      flex-shrink: 0;
-    }
-
-    .warning-banner.danger {
-      background: rgba(220,38,38,0.15);
-      border-left: 4px solid var(--danger);
-      color: #fca5a5;
-    }
-
-    .warning-banner.amber {
-      background: rgba(217,119,6,0.15);
-      border-left: 4px solid var(--warning);
-      color: #fcd34d;
-    }
-
-    .warning-banner.hidden { display: none; }
-
-    /* =========================================================================
-       RESULT DISPLAY
-       ========================================================================= */
-    .result-container {
-      background: var(--surface);
-      border-radius: var(--radius);
-      padding: 20px 16px;
-      margin-bottom: 12px;
-      border: 1px solid #2a2a2a;
-      text-align: center;
-    }
-
-    .result-container.pulse {
-      animation: resultPulse 0.3s ease-out;
-    }
-
-    @keyframes resultPulse {
-      0%   { border-color: var(--primary); box-shadow: 0 0 0 0 rgba(37,99,235,0.4); }
-      50%  { border-color: var(--primary); box-shadow: 0 0 0 6px rgba(37,99,235,0); }
-      100% { border-color: #2a2a2a; box-shadow: none; }
-    }
-
-    .result-value {
-      font-size: 56px;
-      font-weight: 700;
-      color: var(--text);
-      line-height: 1;
-      letter-spacing: -2px;
-    }
-
-    .result-value.emergency { font-size: 64px; }
-    .result-value.empty { color: var(--neutral); font-size: 48px; letter-spacing: 0; }
-
-    .result-unit {
-      font-size: 24px;
-      font-weight: 400;
-      color: var(--text-sec);
-      margin-left: 6px;
-    }
-
-    .result-formula {
-      font-size: 13px;
-      color: var(--text-sec);
-      margin-top: 10px;
-      line-height: 1.4;
-    }
-
-    .result-empty-hint {
-      font-size: 14px;
-      color: var(--neutral);
-      margin-top: 8px;
-    }
-
-    /* =========================================================================
-       DRUG MODULE
-       ========================================================================= */
-    .module-title {
-      font-size: 22px;
-      font-weight: 700;
-      color: var(--text);
-      margin-bottom: 4px;
-    }
-
-    .module-subtitle {
-      font-size: 14px;
-      color: var(--text-sec);
-      margin-bottom: 16px;
-    }
-
-    .drug-search {
-      width: 100%;
-      background: var(--surface2);
-      border: 1px solid #333;
-      border-radius: var(--radius-sm);
-      color: var(--text);
-      font-size: 16px;
-      padding: 12px 14px;
-      margin-bottom: 14px;
-      min-height: 48px;
-    }
-
-    .drug-search:focus { outline: none; border-color: var(--primary); }
-
-    .drug-category-label {
       font-size: 11px;
-      font-weight: 700;
-      color: var(--neutral);
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      padding: 10px 0 6px;
-    }
-
-    .drug-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background: var(--surface);
-      border: 1px solid #2a2a2a;
-      border-radius: var(--radius-sm);
-      padding: 14px 16px;
-      margin-bottom: 8px;
-      min-height: 56px;
-      width: 100%;
-      text-align: left;
-      transition: border-color 0.15s;
-    }
-
-    .drug-item:active { border-color: var(--primary); }
-    .drug-item.active { border-color: var(--primary); background: rgba(37,99,235,0.08); }
-
-    .drug-item .drug-name {
-      font-size: 16px;
-      font-weight: 500;
-      color: var(--text);
-    }
-
-    .drug-item .drug-route {
-      font-size: 13px;
-      color: var(--text-sec);
-    }
-
-    .drug-item .drug-arrow {
-      color: var(--neutral);
-      font-size: 18px;
-    }
-
-    /* =========================================================================
-       DRUG DETAIL / RESULT SCREEN
-       ========================================================================= */
-    .detail-header {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 12px;
-      flex-shrink: 0;
-      padding: 12px 16px 0;
-    }
-
-    .btn-back {
-      font-size: 24px;
-      color: var(--primary);
-      padding: 8px;
-      min-width: 44px;
-      min-height: 44px;
-      display: flex;
-      align-items: center;
-    }
-
-    .detail-drug-name {
-      font-size: 20px;
-      font-weight: 700;
-      color: var(--text);
-      flex: 1;
-    }
-
-    .detail-category {
-      font-size: 13px;
-      color: var(--text-sec);
-    }
-
-    .route-max-row {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 10px;
-    }
-
-    .info-chip {
-      background: var(--surface2);
-      border-radius: 6px;
-      padding: 6px 12px;
-      font-size: 14px;
-      color: var(--text-sec);
-    }
-
-    .info-chip strong { color: var(--text); }
-
-    /* Reference — collapsed by default */
-    .reference-toggle {
-      font-size: 14px;
-      color: var(--neutral);
-      padding: 10px 0;
-      text-align: left;
-      width: 100%;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .reference-body {
-      font-size: 13px;
-      color: var(--text-sec);
-      line-height: 1.5;
-      padding: 8px 0 4px;
-      display: none;
-    }
-
-    .reference-body.open { display: block; }
-
-    /* =========================================================================
-       AIRWAY MODULE
-       ========================================================================= */
-    .airway-result-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-bottom: 12px;
-    }
-
-    .airway-cell {
-      background: var(--surface);
-      border: 1px solid #2a2a2a;
-      border-radius: var(--radius-sm);
-      padding: 14px 12px;
-      text-align: center;
-    }
-
-    .airway-cell .cell-label {
-      font-size: 12px;
-      color: var(--text-sec);
-      margin-bottom: 6px;
-    }
-
-    .airway-cell .cell-value {
-      font-size: 28px;
-      font-weight: 700;
-      color: var(--text);
-    }
-
-    .airway-cell .cell-unit {
-      font-size: 14px;
-      color: var(--text-sec);
-      margin-left: 3px;
-    }
-
-    /* =========================================================================
-       FLUIDS MODULE
-       ========================================================================= */
-    .fluid-option-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-bottom: 16px;
-    }
-
-    .fluid-option-btn {
-      background: var(--surface);
-      border: 1px solid #2a2a2a;
-      border-radius: var(--radius-sm);
-      padding: 16px 12px;
-      font-size: 15px;
-      font-weight: 500;
-      color: var(--text);
-      text-align: center;
-      min-height: 56px;
-      transition: all 0.15s;
-    }
-
-    .fluid-option-btn.active {
-      border-color: var(--primary);
-      background: rgba(37,99,235,0.1);
-      color: var(--primary);
+      color: var(--text-light);
+      padding: 0 2px;
     }
 
     .extra-input {
-      background: var(--surface2);
-      border: 1px solid #333;
-      border-radius: var(--radius-sm);
-      color: var(--text);
-      font-size: 20px;
-      font-weight: 600;
-      padding: 12px;
-      text-align: center;
       width: 100%;
-      min-height: 52px;
-      margin-bottom: 10px;
-    }
-
-    .extra-input:focus { outline: none; border-color: var(--primary); }
-
-    .extra-input-label {
-      font-size: 14px;
-      color: var(--text-sec);
-      margin-bottom: 6px;
-      display: block;
-    }
-
-    /* Multi-value result (deficit, ABL) */
-    .multi-result {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-      gap: 10px;
-      margin-bottom: 12px;
-    }
-
-    .multi-result-cell {
-      background: var(--surface);
-      border: 1px solid #2a2a2a;
+      padding: 12px 14px;
+      border: 1.5px solid var(--border-mid);
       border-radius: var(--radius-sm);
-      padding: 14px 10px;
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text);
+      background: var(--surface);
       text-align: center;
+      outline: none;
+      margin-top: 8px;
     }
 
-    .multi-result-cell .mrc-label {
+    .extra-input:focus { border-color: var(--primary); }
+
+    /* Weech result panel */
+    #weech-result-panel {
+      background: var(--warning-bg);
+      border: 1.5px solid #fcd34d;
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      margin-top: 10px;
+      font-size: 14px;
+      color: #78350f;
+      line-height: 1.5;
+    }
+
+    #weech-result-panel .weech-formula {
+      font-weight: 700;
+      font-size: 15px;
+      color: #92400e;
+      margin-bottom: 3px;
+    }
+
+    #weech-result-panel .weech-band {
       font-size: 12px;
-      color: var(--text-sec);
-      margin-bottom: 6px;
+      color: #b45309;
     }
 
-    .multi-result-cell .mrc-value {
-      font-size: 26px;
+    /* =========================================================================
+       SCREEN 4 — MODULE + DRUG SELECTION
+       ========================================================================= */
+    .select-header {
+      background: var(--primary);
+      color: #fff;
+      padding: 16px 20px;
+      flex-shrink: 0;
+    }
+
+    .select-header-patient {
+      font-size: 13px;
+      opacity: 0.85;
+      margin-top: 3px;
+    }
+
+    .module-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin-bottom: 12px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .module-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      cursor: pointer;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+
+    .module-header-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .module-icon {
+      font-size: 22px;
+      line-height: 1;
+    }
+
+    .module-name {
+      font-size: 16px;
       font-weight: 700;
       color: var(--text);
     }
 
-    .multi-result-cell .mrc-unit {
+    .module-desc {
+      font-size: 12px;
+      color: var(--text-sec);
+      margin-top: 1px;
+    }
+
+    .module-toggle {
+      width: 48px;
+      height: 28px;
+      border-radius: 14px;
+      border: none;
+      background: var(--border-mid);
+      position: relative;
+      transition: background 0.2s;
+      flex-shrink: 0;
+    }
+
+    .module-toggle::after {
+      content: '';
+      position: absolute;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #fff;
+      top: 3px;
+      left: 3px;
+      transition: transform 0.2s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+
+    .module-toggle.on {
+      background: var(--primary);
+    }
+
+    .module-toggle.on::after {
+      transform: translateX(20px);
+    }
+
+    .drug-chip-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 12px 16px 14px;
+    }
+
+    .drug-chip {
+      padding: 8px 14px;
+      border-radius: 20px;
       font-size: 13px;
+      font-weight: 600;
+      border: 1.5px solid var(--primary);
+      background: var(--primary-light);
+      color: var(--primary);
+      transition: all 0.15s;
+      cursor: pointer;
+      min-height: 36px;
+      display: flex;
+      align-items: center;
+    }
+
+    .drug-chip.selected {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    .drug-chip.unselected {
+      background: var(--surface2);
+      color: var(--text-sec);
+      border-color: var(--border-mid);
+    }
+
+    .chip-select-all {
+      font-size: 12px;
+      color: var(--primary);
+      font-weight: 600;
+      padding: 0;
+      text-decoration: underline;
+      background: none;
+      border: none;
+      margin-left: 4px;
+    }
+
+    /* =========================================================================
+       SCREEN 5 — WORKSHEET
+       ========================================================================= */
+    .worksheet-header {
+      background: var(--primary);
+      color: #fff;
+      padding: 14px 16px;
+      flex-shrink: 0;
+    }
+
+    .worksheet-patient-name {
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .worksheet-patient-meta {
+      font-size: 13px;
+      opacity: 0.85;
+      margin-top: 2px;
+    }
+
+    .worksheet-est-badge {
+      display: inline-block;
+      background: var(--warning);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+      margin-left: 6px;
+      letter-spacing: 0.4px;
+    }
+
+    /* Worksheet cards */
+    .ws-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin-bottom: 12px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .ws-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      background: var(--surface);
+      cursor: pointer;
+      border-bottom: 1px solid transparent;
+      transition: background 0.15s;
+    }
+
+    .ws-card-header:active { background: var(--surface2); }
+
+    .ws-card-header.open {
+      border-bottom-color: var(--border);
+      background: var(--primary-light);
+    }
+
+    .ws-card-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .ws-chevron {
+      font-size: 16px;
+      color: var(--primary);
+      transition: transform 0.2s;
+    }
+
+    .ws-card-header.open .ws-chevron { transform: rotate(180deg); }
+
+    .ws-card-body {
+      display: none;
+    }
+
+    .ws-card-body.open { display: block; }
+
+    /* Drug rows in worksheet */
+    .ws-drug-row {
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+
+    .ws-drug-row:last-child { border-bottom: none; }
+
+    .ws-drug-row:active { background: var(--surface2); }
+
+    .ws-drug-summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+    }
+
+    .ws-drug-name {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .ws-drug-cat {
+      font-size: 11px;
+      color: var(--text-light);
+      margin-top: 1px;
+    }
+
+    .ws-drug-dose {
+      text-align: right;
+    }
+
+    .ws-dose-value {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--primary);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .ws-dose-unit {
+      font-size: 12px;
+      color: var(--text-sec);
+      margin-top: 1px;
+    }
+
+    /* Expanded drug detail */
+    .ws-drug-detail {
+      display: none;
+      background: var(--bg-alt);
+      border-top: 1px solid var(--border);
+      padding: 12px 16px;
+    }
+
+    .ws-drug-detail.open { display: block; }
+
+    .ws-detail-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      padding: 3px 0;
       color: var(--text-sec);
     }
 
-    /* =========================================================================
-       REGIONAL MODULE
-       ========================================================================= */
-    .la-drug-selector {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      margin-bottom: 12px;
+    .ws-detail-row span:first-child { font-weight: 600; color: var(--text); }
+
+    .ws-detail-formula {
+      font-size: 13px;
+      color: var(--text-sec);
+      margin-top: 8px;
+      padding: 8px 10px;
+      background: var(--surface2);
+      border-radius: 6px;
+      font-family: monospace;
     }
 
-    .la-drug-btn {
-      background: var(--surface);
-      border: 1px solid #2a2a2a;
-      border-radius: var(--radius-sm);
-      padding: 14px 10px;
-      font-size: 15px;
+    .ws-detail-warning {
+      margin-top: 8px;
+      font-size: 13px;
+      color: var(--danger-dark);
+      background: var(--danger-bg);
+      border: 1px solid #fca5a5;
+      border-radius: 6px;
+      padding: 8px 10px;
       font-weight: 500;
-      color: var(--text);
-      text-align: center;
-      min-height: 52px;
-      transition: all 0.15s;
+      line-height: 1.45;
     }
 
-    .la-drug-btn.active {
-      border-color: var(--warning);
-      background: rgba(217,119,6,0.1);
-      color: var(--warning);
+    .ws-detail-warning.amber {
+      color: #92400e;
+      background: var(--warning-bg);
+      border-color: #fcd34d;
+    }
+
+    .ws-detail-ref {
+      font-size: 11px;
+      color: var(--text-light);
+      margin-top: 6px;
+    }
+
+    /* Airway / fluids / regional rows */
+    .ws-info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 11px 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+    }
+
+    .ws-info-row:last-child { border-bottom: none; }
+
+    .ws-info-label { color: var(--text-sec); font-weight: 500; }
+
+    .ws-info-value {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--primary);
+      text-align: right;
+    }
+
+    .ws-info-value-sm {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      text-align: right;
+    }
+
+    .ws-section-sub {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-light);
+      padding: 10px 16px 4px;
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .ws-new-patient-btn {
+      margin: 16px 0;
     }
 
     /* =========================================================================
-       EMERGENCY MODULE
+       EMERGENCY SCREEN
        ========================================================================= */
-    #screen-emergency-content {
+    #screen-emergency {
       background: var(--emergency-bg);
+    }
+
+    #screen-emergency-content {
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 16px;
+    }
+
+    .emergency-title {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--danger);
+      margin-bottom: 4px;
+    }
+
+    .emergency-subtitle {
+      font-size: 13px;
+      color: var(--text-sec);
+      margin-bottom: 16px;
     }
 
     .emergency-card {
@@ -931,192 +1198,190 @@
     }
 
     .emergency-card.arrest {
-      background: rgba(220,38,38,0.15);
+      background: var(--danger-bg);
       border: 2px solid var(--danger);
     }
 
     .emergency-card.anaphylaxis {
-      background: rgba(124,58,237,0.15);
+      background: var(--purple-bg);
       border: 2px solid var(--purple);
     }
 
     .emergency-card.standard {
       background: var(--surface);
-      border: 1px solid #2a2a2a;
+      border: 1px solid var(--border);
     }
 
     .emergency-card .ec-title {
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 700;
-      margin-bottom: 6px;
+      margin-bottom: 4px;
     }
 
-    .emergency-card.arrest .ec-title { color: #fca5a5; }
-    .emergency-card.anaphylaxis .ec-title { color: #c4b5fd; }
+    .emergency-card.arrest .ec-title { color: var(--danger); }
+    .emergency-card.anaphylaxis .ec-title { color: var(--purple); }
     .emergency-card.standard .ec-title { color: var(--text); }
 
     .emergency-card .ec-concentration {
-      font-size: 18px;
-      font-weight: 700;
-      margin-bottom: 12px;
-      padding: 8px 12px;
-      border-radius: var(--radius-sm);
-    }
-
-    .emergency-card.arrest .ec-concentration {
-      background: rgba(220,38,38,0.2);
-      color: #fca5a5;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      padding: 6px 10px;
+      border-radius: 6px;
+      color: var(--danger-dark);
+      background: rgba(220,38,38,0.08);
     }
 
     .emergency-card.anaphylaxis .ec-concentration {
-      background: rgba(124,58,237,0.2);
-      color: #c4b5fd;
+      color: var(--purple);
+      background: rgba(124,58,237,0.08);
     }
 
     .emergency-card .ec-result {
       font-size: 48px;
-      font-weight: 700;
+      font-weight: 800;
       color: var(--text);
       text-align: center;
+      font-variant-numeric: tabular-nums;
     }
 
     .emergency-card .ec-unit {
       font-size: 20px;
-      font-weight: 400;
+      font-weight: 500;
       color: var(--text-sec);
     }
 
     .emergency-card .ec-formula {
-      font-size: 13px;
+      font-size: 12px;
       color: var(--text-sec);
       text-align: center;
-      margin-top: 6px;
+      margin-top: 4px;
     }
 
-    /* =========================================================================
-       SUGAMMADEX TIER SELECTOR
-       ========================================================================= */
-    .tier-selector {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 8px;
+    .emergency-card .ec-warning {
+      margin-top: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--danger-dark);
+      background: rgba(220,38,38,0.07);
+      padding: 8px 10px;
+      border-radius: 6px;
+      line-height: 1.4;
+    }
+
+    .emergency-card.anaphylaxis .ec-warning {
+      color: var(--purple);
+      background: rgba(124,58,237,0.07);
+    }
+
+    #emergency-no-weight {
       margin-bottom: 12px;
     }
 
-    .tier-btn {
+    .emergency-quickstart-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .emergency-qs-btn {
       background: var(--surface);
-      border: 1px solid #2a2a2a;
+      border: 1.5px solid var(--danger);
       border-radius: var(--radius-sm);
-      padding: 12px 8px;
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--text);
+      padding: 12px 10px;
       text-align: center;
-      min-height: 52px;
-      transition: all 0.15s;
+      cursor: pointer;
     }
 
-    .tier-btn.active {
-      border-color: var(--primary);
-      background: rgba(37,99,235,0.1);
-      color: var(--primary);
-    }
+    .emergency-qs-btn .qs-w { font-size: 18px; font-weight: 800; color: var(--danger); }
+    .emergency-qs-btn .qs-l { font-size: 11px; color: var(--text-sec); margin-top: 2px; }
 
     /* =========================================================================
-       OFFLINE / FOOTER
+       OFFLINE INDICATOR
        ========================================================================= */
-    #footer-bar {
+    #offline-indicator {
       display: none;
-      padding: 4px 16px;
-      font-size: 11px;
-      color: var(--neutral);
-      background: var(--bg);
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 999;
+      background: var(--warning);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
       text-align: center;
-      flex-shrink: 0;
+      padding: 6px;
+      letter-spacing: 0.3px;
     }
 
-    #footer-bar.visible { display: block; }
+    #offline-indicator.visible { display: block; }
 
     /* =========================================================================
-       UTILITY
+       RESULT PULSE ANIMATION
        ========================================================================= */
-    .divider {
-      height: 1px;
-      background: #2a2a2a;
-      margin: 12px 0;
+    @keyframes resultPulse {
+      0%   { background: rgba(37,99,235,0.12); }
+      100% { background: transparent; }
     }
 
-    .text-danger { color: var(--danger); }
-    .text-warning { color: var(--warning); }
-    .text-success { color: var(--success); }
-    .text-sec { color: var(--text-sec); }
+    .result-flash { animation: resultPulse 0.4s ease-out; }
 
-    .hidden { display: none !important; }
-
-    .mt-8  { margin-top: 8px; }
-    .mt-12 { margin-top: 12px; }
-    .mt-16 { margin-top: 16px; }
-    .mb-8  { margin-bottom: 8px; }
-    .mb-12 { margin-bottom: 12px; }
-
-    .section-label {
-      font-size: 13px;
-      font-weight: 700;
-      color: var(--neutral);
-      text-transform: uppercase;
-      letter-spacing: 0.8px;
-      margin-bottom: 10px;
-    }
   </style>
 </head>
+
 <body>
 
 <!-- ============================================================
-     FULL-SCREEN OVERLAYS (rendered outside #app, highest z-index)
+     OFFLINE INDICATOR
      ============================================================ -->
+<div id="offline-indicator">⚠ OFFLINE — Using cached data · All core functions available</div>
 
-<!-- Data load failure — app does not open -->
+
+<!-- ============================================================
+     DATA LOAD ERROR — shown if data.js or calc.js fails
+     ============================================================ -->
 <div id="screen-error" class="hidden">
-  <div class="overlay-icon">⚠️</div>
-  <div class="overlay-title" style="color:#dc2626;">Clinical Data Failed to Load</div>
+  <div class="overlay-icon">🔴</div>
+  <div class="overlay-title">Clinical Data Failed to Load</div>
   <div class="overlay-body">
-    The clinical database could not be initialised.<br>
-    Close and reopen the app. If this persists, reinstall.
+    PaedSafe cannot start because its clinical data failed to load.<br><br>
+    <strong>Close and reopen the app.</strong> If the problem persists, reinstall.
   </div>
 </div>
 
-<!-- Version mismatch — auto-reloads -->
+<!-- VERSION MISMATCH -->
 <div id="screen-version-mismatch" class="hidden">
   <div class="overlay-icon">🔄</div>
   <div class="overlay-title">App Data Updated</div>
-  <div class="overlay-body">
-    A new version of PaedSafe is loading now.<br>
-    This will take just a moment.
+  <div class="overlay-body" style="text-align:center;">
+    A new version of PaedSafe is loading now.<br>This will take just a moment.
   </div>
 </div>
 
-<!-- First-load disclaimer — exact text from 05_safety_disclaimer_framework.md §6 -->
+<!-- ============================================================
+     DISCLAIMER — first load only
+     ============================================================ -->
 <div id="screen-disclaimer" class="hidden">
   <div class="overlay-icon">🏥</div>
   <div class="overlay-title">PaedSafe — Important Notice</div>
   <div class="overlay-body">
     <strong>PaedSafe is a calculation aid for qualified anaesthesia providers.</strong>
     <br><br>
-    It is not a certified medical device. It does not replace clinical training, institutional protocols, or your own judgement.
+    It is not a certified medical device. It does not replace clinical training, institutional protocols, or your judgement.
     <br><br>
-    Every dose calculated by this app must be verified by you before administration. You are responsible for confirming:
+    Every dose calculated by this app must be verified before administration. You are responsible for confirming:
     <ul>
       <li>The patient's weight and age are correct</li>
       <li>The calculated dose is appropriate for this patient's clinical condition</li>
       <li>The dose aligns with your institution's formulary and protocols</li>
     </ul>
     <br>
-    Formula sources and version numbers are shown on every result screen.
+    Formula sources and version numbers are shown on every result.
     <br><br>
-    <strong>By continuing, you confirm that you are a qualified healthcare provider and that you will independently verify all outputs before use.</strong>
+    <strong>By continuing, you confirm that you are a qualified healthcare provider and will independently verify all outputs before use.</strong>
   </div>
   <button class="btn-primary" id="btn-disclaimer-accept">I Understand — Continue</button>
-  <div class="overlay-footer">PaedSafe v1.0.0 · Dr. John Afam-Osemene</div>
+  <div class="overlay-footer">PaedSafe v1.1.0 · Dr. John Afam-Osemene</div>
 </div>
 
 
@@ -1125,57 +1390,93 @@
      ============================================================ -->
 <div id="app">
 
-  <!-- Patient summary bar — visible on all calc screens -->
+  <!-- Patient bar -->
   <div id="patient-bar">
     <div class="patient-info">
-      <span id="bar-weight">—</span> kg &nbsp;|&nbsp; <span id="bar-age">—</span>
-      &nbsp;<span class="est-badge" id="est-badge">EST. WEIGHT</span>
+      <span id="bar-pid" class="bar-pid"></span>
+      <span id="bar-weight">—</span> kg&nbsp;|&nbsp;<span id="bar-age">—</span>
+      <span class="est-badge" id="est-badge">EST.</span>
     </div>
     <div class="bar-actions">
+      <button class="btn-emergency-bar" id="btn-emergency-bar">🚨</button>
       <button class="btn-change" id="btn-change-patient">Change</button>
     </div>
   </div>
 
-  <!-- Neonate persistent banner -->
+  <!-- Neonate banner -->
   <div id="neonate-banner">
     ⚠ NEONATE / LOW WEIGHT — verify all doses independently before administration
   </div>
 
   <!-- ============================================================
-       SCREEN: PATIENT SETUP
+       SCREEN 1: INTRO
        ============================================================ -->
-  <div class="screen active" id="screen-setup">
+  <div class="screen active" id="screen-intro">
+    <div class="intro-content">
+      <div class="intro-logo-wrap">
+        <div class="intro-logo-fallback">
+          <span>PS</span>
+          <!-- ECG line SVG -->
+          <svg class="intro-ecg" viewBox="0 0 52 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <polyline points="0,7 8,7 12,2 16,12 20,7 24,7 26,1 28,13 30,7 38,7 42,4 46,10 52,7"
+              stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.9"/>
+          </svg>
+        </div>
+      </div>
+
+      <div class="intro-title">PaedSafe</div>
+      <div class="intro-subtitle">Paediatric Anaesthesia Calculator</div>
+
+      <div class="intro-divider"></div>
+
+      <div class="intro-features">
+        <span class="intro-feature-chip">📴 Offline-first</span>
+        <span class="intro-feature-chip">⚖️ Weight-based</span>
+        <span class="intro-feature-chip">🇳🇬 Nigeria formulary</span>
+        <span class="intro-feature-chip">⚡ Instant results</span>
+      </div>
+
+      <div class="intro-cta-wrap">
+        <button class="btn-primary" id="btn-get-started">Get Started →</button>
+        <div class="intro-author">
+          by <strong>Dr. John Afam</strong> · FMC Asaba
+        </div>
+      </div>
+    </div>
+
+    <div class="intro-version">v1.1.0</div>
+  </div><!-- /screen-intro -->
+
+
+  <!-- ============================================================
+       SCREEN 2: PATIENT SETUP (v2 rework)
+       ============================================================ -->
+  <div class="screen" id="screen-setup">
+
     <div class="setup-header">
-      <div class="setup-logo">PaedSafe</div>
-      <div class="setup-tagline">Paediatric Anaesthesia Calculator</div>
+      <div class="setup-header-title">New Patient</div>
+      <div class="setup-header-sub">Enter details to begin calculating</div>
     </div>
 
     <div class="scroll-area">
 
-      <!-- Resume prompt (hidden by default, shown if session exists) -->
-      <div id="resume-prompt" class="hidden">
-        <p id="resume-text">Previous session detected.</p>
-        <div class="resume-actions">
-          <button class="btn-secondary" id="btn-resume-new">New Patient</button>
-          <button class="btn-primary" id="btn-resume-continue">Resume</button>
+      <!-- Resume prompt -->
+      <div id="resume-prompt" class="hidden card mb-12">
+        <p id="resume-text" style="font-size:14px;color:var(--text-sec);margin-bottom:10px;"></p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <button class="btn-secondary" id="btn-resume-new" style="font-size:14px;min-height:44px;">New Patient</button>
+          <button class="btn-primary" id="btn-resume-continue" style="font-size:14px;min-height:44px;">Resume</button>
         </div>
       </div>
 
-      <!-- Weight input -->
+      <!-- Patient ID -->
       <div class="input-group">
-        <label class="input-label">Weight</label>
-        <div class="weight-display" id="weight-display" title="Tap to type">
-          <span id="weight-value">10.0</span><span class="weight-unit"> kg</span>
-        </div>
-        <input type="range" id="weight-slider" min="0.5" max="80" step="0.5" value="10">
-        <div class="range-labels"><span>0.5 kg</span><span>80 kg</span></div>
-
-        <!-- Manual entry (shown on tap of weight display) -->
-        <input type="number" id="weight-manual" class="extra-input hidden"
-               min="0.5" max="150" step="0.1" placeholder="Enter kg">
+        <label class="input-label">Patient ID <span style="font-weight:400;text-transform:none;color:var(--text-light)">(optional)</span></label>
+        <input type="text" id="patient-id" class="text-input"
+               placeholder="e.g. Baby Okafor, Theatre 3" maxlength="40">
       </div>
 
-      <!-- Age input -->
+      <!-- Age -->
       <div class="input-group">
         <label class="input-label">Age</label>
         <div class="age-row">
@@ -1184,645 +1485,232 @@
             <input type="number" id="age-years" min="0" max="18" placeholder="0">
           </div>
           <div class="age-input-wrap">
-            <label for="age-months">Months</label>
+            <label for="age-months-input">Months</label>
             <input type="number" id="age-months-input" min="0" max="11" placeholder="0">
           </div>
         </div>
       </div>
 
-      <!-- Weight source toggle -->
+      <!-- Weight -->
       <div class="input-group">
-        <label class="input-label">Weight Source</label>
-        <div class="source-toggle">
-          <button class="source-btn active" id="btn-actual" data-source="actual">Actual</button>
-          <button class="source-btn" id="btn-estimated" data-source="estimated">Estimated</button>
+        <label class="input-label">Weight</label>
+
+        <div class="weight-display-wrap">
+          <div class="weight-display" id="weight-display" title="Tap to type">
+            <span class="wt-val" id="weight-value">10.0</span>
+            <span class="wt-unit">kg</span>
+          </div>
+          <span class="weight-source-pill actual" id="weight-source-pill">ACTUAL</span>
+        </div>
+
+        <input type="range" id="weight-slider" min="0.5" max="80" step="0.5" value="10">
+        <div class="range-labels"><span>0.5 kg</span><span>80 kg</span></div>
+
+        <!-- Manual type entry -->
+        <input type="number" id="weight-manual" class="extra-input hidden"
+               min="0.5" max="150" step="0.1" placeholder="Type weight in kg">
+
+        <!-- Estimate from Age button -->
+        <button class="btn-outline mt-12" id="btn-weech-estimate">
+          📐 Estimate from Age (Weech)
+        </button>
+
+        <!-- Weech result panel — hidden until estimate triggered -->
+        <div id="weech-result-panel" class="hidden">
+          <div class="weech-formula" id="weech-formula-text"></div>
+          <div class="weech-band" id="weech-band-text"></div>
+          <div style="margin-top:6px;font-size:12px;">⚠ Estimated weight — you can adjust the slider above. Source is set to ESTIMATED.</div>
         </div>
       </div>
 
-      <!-- Confirm button -->
-      <button class="btn-primary mt-16 mb-12" id="btn-confirm-patient">
-        Confirm Patient →
+      <!-- Confirm -->
+      <button class="btn-primary mt-16 mb-12" id="btn-confirm-patient" disabled>
+        Continue: Select Calculations →
       </button>
 
-      <!-- Quick Start -->
-      <div class="quickstart-label">⚡ Quick Start (Estimated Weight)</div>
-      <div class="quickstart-grid">
-        <button class="quickstart-btn" data-qs-weight="5" data-qs-age="0">
-          <span class="qs-weight">5 kg</span>
-          <span class="qs-label">Neonate / infant</span>
-        </button>
-        <button class="quickstart-btn" data-qs-weight="10" data-qs-age="12">
-          <span class="qs-weight">10 kg</span>
-          <span class="qs-label">~1 year</span>
-        </button>
-        <button class="quickstart-btn" data-qs-weight="20" data-qs-age="60">
-          <span class="qs-weight">20 kg</span>
-          <span class="qs-label">~5 years</span>
-        </button>
-        <button class="quickstart-btn" data-qs-weight="30" data-qs-age="120">
-          <span class="qs-weight">30 kg</span>
-          <span class="qs-label">~10 years</span>
-        </button>
+      <div style="font-size:12px;color:var(--text-light);text-align:center;padding-bottom:8px;">
+        Weight and age required to continue
       </div>
 
-    </div><!-- /scroll-area -->
+    </div>
   </div><!-- /screen-setup -->
 
 
   <!-- ============================================================
-       SCREEN: DRUGS MODULE
+       SCREEN 3: MODULE + DRUG SELECTION
        ============================================================ -->
-  <div class="screen" id="screen-drugs">
+  <div class="screen" id="screen-select">
 
-    <!-- Drug list view -->
-    <div id="drugs-list-view" class="scroll-area">
-      <div class="module-title">Drug Dosing</div>
-      <div class="module-subtitle">Select a drug to calculate dose</div>
-      <input type="search" class="drug-search" id="drug-search"
-             placeholder="Search drugs…" autocomplete="off">
-      <div id="drug-list-container"></div>
+    <div class="select-header">
+      <div style="font-size:20px;font-weight:700;">What do you need?</div>
+      <div class="select-header-patient" id="select-patient-summary"></div>
     </div>
 
-    <!-- Drug detail / result view (hidden until drug selected) -->
-    <div id="drugs-detail-view" class="hidden" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
-
-      <div class="detail-header">
-        <button class="btn-back" id="btn-drug-back">‹</button>
-        <div>
-          <div class="detail-drug-name" id="detail-drug-name">—</div>
-          <div class="detail-category" id="detail-drug-category">—</div>
-        </div>
-      </div>
-
-      <!-- Warning banner (danger or amber) -->
-      <div class="warning-banner hidden" id="drug-warning-banner"></div>
-
-      <div class="scroll-area" style="padding-top:8px;">
-
-        <!-- Sugammadex tier selector (hidden for all other drugs) -->
-        <div id="sugammadex-selector" class="hidden">
-          <div class="section-label">Block Depth</div>
-          <div class="tier-selector">
-            <button class="tier-btn active" data-tier="moderate">Moderate<br><small>2 mg/kg</small></button>
-            <button class="tier-btn" data-tier="deep">Deep<br><small>4 mg/kg</small></button>
-            <button class="tier-btn" data-tier="rsi">RSI rescue<br><small>16 mg/kg</small></button>
-          </div>
-        </div>
-
-        <!-- Result -->
-        <div class="result-container" id="drug-result-container">
-          <div class="result-value empty" id="drug-result-value">—</div>
-          <div class="result-empty-hint" id="drug-result-hint">Enter patient weight to calculate</div>
-          <div class="result-formula hidden" id="drug-result-formula"></div>
-        </div>
-
-        <!-- Route / max row -->
-        <div class="route-max-row" id="drug-route-max">
-          <div class="info-chip">Route: <strong id="drug-route-display">—</strong></div>
-          <div class="info-chip" id="drug-max-chip" style="display:none">
-            Max: <strong id="drug-max-display">—</strong>
-          </div>
-        </div>
-
-        <!-- Reference -->
-        <button class="reference-toggle" id="drug-ref-toggle">
-          <span>📚</span> <span>Reference</span> <span id="drug-ref-chevron">▸</span>
-        </button>
-        <div class="reference-body" id="drug-ref-body"></div>
-
-      </div>
-    </div>
-
-  </div><!-- /screen-drugs -->
-
-
-  <!-- ============================================================
-       SCREEN: AIRWAY MODULE
-       ============================================================ -->
-  <div class="screen" id="screen-airway">
     <div class="scroll-area">
-      <div class="module-title">Airway & Intubation</div>
-      <div class="module-subtitle">Sizing based on current patient</div>
 
-      <!-- ETT -->
-      <div class="section-label mt-8">Endotracheal Tube (ETT)</div>
-      <div class="warning-banner amber" id="airway-warning-banner">
-        Estimates only — confirm with capnography and leak test. Always have one size above and below ready.
-      </div>
-      <div class="airway-result-grid" id="ett-grid">
-        <div class="airway-cell">
-          <div class="cell-label">Uncuffed ID</div>
-          <div class="cell-value" id="ett-uncuffed">—<span class="cell-unit">mm</span></div>
+      <!-- DRUG DOSING -->
+      <div class="module-section">
+        <div class="module-header" id="drug-module-header">
+          <div class="module-header-left">
+            <span class="module-icon">💊</span>
+            <div>
+              <div class="module-name">Drug Dosing</div>
+              <div class="module-desc">Select individual drugs below</div>
+            </div>
+          </div>
+          <button class="module-toggle on" id="drug-module-toggle" data-module="drugs"></button>
         </div>
-        <div class="airway-cell">
-          <div class="cell-label">Cuffed ID</div>
-          <div class="cell-value" id="ett-cuffed">—<span class="cell-unit">mm</span></div>
-        </div>
-        <div class="airway-cell">
-          <div class="cell-label">Oral length</div>
-          <div class="cell-value" id="ett-oral">—<span class="cell-unit">cm</span></div>
-        </div>
-        <div class="airway-cell">
-          <div class="cell-label">Nasal length</div>
-          <div class="cell-value" id="ett-nasal">—<span class="cell-unit">cm</span></div>
+        <div id="drug-chip-area">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px 2px;">
+            <span style="font-size:12px;color:var(--text-sec);">Tap to select / deselect</span>
+            <button class="chip-select-all" id="btn-drug-select-all">Select all</button>
+          </div>
+          <div class="drug-chip-grid" id="drug-chip-grid"></div>
         </div>
       </div>
 
-      <!-- Sevoflurane reference note -->
-      <div class="card">
-        <div class="card-title">Sevoflurane — Inhalational Induction</div>
-        <div style="font-size:15px;color:var(--text);">6–8% for gaseous induction</div>
-        <div style="font-size:13px;color:var(--text-sec);margin-top:6px;">
-          Reference only — not weight-based. Titrate to clinical effect.
-          <br>Source: BNF for Children (current ed)
+      <!-- AIRWAY -->
+      <div class="module-section">
+        <div class="module-header">
+          <div class="module-header-left">
+            <span class="module-icon">🫁</span>
+            <div>
+              <div class="module-name">Airway Sizing</div>
+              <div class="module-desc">ETT · LMA · Face mask · Blade · Suction</div>
+            </div>
+          </div>
+          <button class="module-toggle on" id="airway-module-toggle" data-module="airway"></button>
         </div>
       </div>
 
-      <div class="divider"></div>
-
-      <!-- LMA -->
-      <div class="section-label">LMA</div>
-      <div class="airway-result-grid">
-        <div class="airway-cell">
-          <div class="cell-label">LMA Size</div>
-          <div class="cell-value" id="lma-size">—</div>
-        </div>
-        <div class="airway-cell">
-          <div class="cell-label">Max Cuff Volume</div>
-          <div class="cell-value" id="lma-cuff">—<span class="cell-unit">ml</span></div>
-        </div>
-      </div>
-
-      <div class="divider"></div>
-
-      <!-- Face Mask -->
-      <div class="section-label">Face Mask</div>
-      <div class="airway-result-grid">
-        <div class="airway-cell" style="grid-column:1/-1;">
-          <div class="cell-label">Mask Size</div>
-          <div class="cell-value" id="mask-size">—</div>
+      <!-- FLUIDS -->
+      <div class="module-section">
+        <div class="module-header">
+          <div class="module-header-left">
+            <span class="module-icon">💧</span>
+            <div>
+              <div class="module-name">Fluids</div>
+              <div class="module-desc">Maintenance · Deficit · Bolus · Blood</div>
+            </div>
+          </div>
+          <button class="module-toggle on" id="fluids-module-toggle" data-module="fluids"></button>
         </div>
       </div>
 
-      <div class="divider"></div>
-
-      <!-- Laryngoscope -->
-      <div class="section-label">Laryngoscope Blade</div>
-      <div class="card">
-        <div style="font-size:22px;font-weight:700;color:var(--text);" id="blade-type">—</div>
-        <div style="font-size:16px;color:var(--text-sec);margin-top:4px;" id="blade-size">—</div>
-      </div>
-
-      <div class="divider"></div>
-
-      <!-- Suction catheter -->
-      <div class="section-label">Suction Catheter</div>
-      <div class="airway-result-grid">
-        <div class="airway-cell">
-          <div class="cell-label">Uncuffed ETT</div>
-          <div class="cell-value" id="suction-uncuffed">—<span class="cell-unit">Fr</span></div>
-        </div>
-        <div class="airway-cell">
-          <div class="cell-label">Cuffed ETT</div>
-          <div class="cell-value" id="suction-cuffed">—<span class="cell-unit">Fr</span></div>
+      <!-- REGIONAL -->
+      <div class="module-section">
+        <div class="module-header">
+          <div class="module-header-left">
+            <span class="module-icon">📍</span>
+            <div>
+              <div class="module-name">Regional Anaesthesia</div>
+              <div class="module-desc">Bupivacaine · Lignocaine · Caudal · LAST</div>
+            </div>
+          </div>
+          <button class="module-toggle on" id="regional-module-toggle" data-module="regional"></button>
         </div>
       </div>
 
-      <div style="font-size:13px;color:var(--text-sec);margin-bottom:16px;">
-        Formula: ETT size × 2 = Suction catheter French size
+      <button class="btn-primary mt-8" id="btn-generate-worksheet">
+        Generate Worksheet →
+      </button>
+
+      <div style="text-align:center;margin-top:10px;">
+        <button style="font-size:13px;color:var(--text-light);text-decoration:underline;background:none;border:none;cursor:pointer;" id="btn-back-to-setup">← Back to patient setup</button>
       </div>
 
     </div>
-  </div><!-- /screen-airway -->
+  </div><!-- /screen-select -->
 
 
   <!-- ============================================================
-       SCREEN: FLUIDS MODULE
+       SCREEN 4: WORKSHEET
        ============================================================ -->
-  <div class="screen" id="screen-fluids">
-    <div class="scroll-area">
-      <div class="module-title">Fluid Management</div>
-      <div class="module-subtitle">Select calculation type</div>
+  <div class="screen" id="screen-worksheet">
 
-      <div class="fluid-option-grid">
-        <button class="fluid-option-btn active" data-fluid="maintenance">Maintenance</button>
-        <button class="fluid-option-btn" data-fluid="deficit">Deficit</button>
-        <button class="fluid-option-btn" data-fluid="bolus">Bolus</button>
-        <button class="fluid-option-btn" data-fluid="abl">ABL / Transfusion</button>
-      </div>
-
-      <!-- Maintenance result -->
-      <div id="fluid-maintenance">
-        <div class="warning-banner amber">
-          4-2-1 is a maintenance estimate. Integrate surgical losses and haemodynamic status intraoperatively. Use isotonic fluids.
-        </div>
-        <div class="result-container mt-12" id="fluid-maintenance-result">
-          <div class="result-value" id="fluid-maintenance-value">—</div>
-          <span class="result-unit">ml/hr</span>
-          <div class="result-formula" id="fluid-maintenance-formula"></div>
-        </div>
-        <div class="info-chip mt-8" style="display:inline-block;">
-          Daily: <strong id="fluid-maintenance-daily">—</strong>
-        </div>
-      </div>
-
-      <!-- Deficit -->
-      <div id="fluid-deficit" class="hidden">
-        <label class="extra-input-label">Dehydration %</label>
-        <input type="number" class="extra-input" id="deficit-percent"
-               min="1" max="15" placeholder="e.g. 5">
-        <div class="multi-result" id="deficit-result-grid">
-          <div class="multi-result-cell">
-            <div class="mrc-label">Total Deficit</div>
-            <div class="mrc-value" id="deficit-total">—</div>
-            <div class="mrc-unit">ml</div>
-          </div>
-          <div class="multi-result-cell">
-            <div class="mrc-label">First Hour</div>
-            <div class="mrc-value" id="deficit-first">—</div>
-            <div class="mrc-unit">ml</div>
-          </div>
-          <div class="multi-result-cell">
-            <div class="mrc-label">Next 8 Hours</div>
-            <div class="mrc-value" id="deficit-next">—</div>
-            <div class="mrc-unit">ml</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Bolus -->
-      <div id="fluid-bolus" class="hidden">
-        <div class="section-label">Fluid Type</div>
-        <div class="tier-selector mb-12">
-          <button class="tier-btn active" data-bolus="crystalloid">Crystalloid</button>
-          <button class="tier-btn" data-bolus="colloid">Colloid</button>
-          <button class="tier-btn" data-bolus="sepsis">Sepsis</button>
-        </div>
-        <div class="warning-banner amber" id="bolus-warning">
-          Reassess after every bolus. Fluid bolus strategy must be adapted to haemodynamic phenotype.
-        </div>
-        <div class="result-container mt-12">
-          <div class="result-value" id="bolus-result-value">—</div>
-          <span class="result-unit">ml</span>
-          <div class="result-formula" id="bolus-result-formula"></div>
-        </div>
-      </div>
-
-      <!-- ABL / Transfusion -->
-      <div id="fluid-abl" class="hidden">
-        <div class="age-row mb-12">
-          <div class="age-input-wrap">
-            <label>Starting Hct (%)</label>
-            <input type="number" class="extra-input" id="abl-start-hct" min="1" max="70" placeholder="e.g. 35">
-          </div>
-          <div class="age-input-wrap">
-            <label>Min acceptable Hct (%)</label>
-            <input type="number" class="extra-input" id="abl-min-hct" min="1" max="50" placeholder="e.g. 24">
-          </div>
-        </div>
-        <div class="multi-result">
-          <div class="multi-result-cell">
-            <div class="mrc-label">EBV</div>
-            <div class="mrc-value" id="abl-ebv">—</div>
-            <div class="mrc-unit">ml</div>
-          </div>
-          <div class="multi-result-cell">
-            <div class="mrc-label">ABL</div>
-            <div class="mrc-value" id="abl-abl">—</div>
-            <div class="mrc-unit">ml</div>
-          </div>
-        </div>
-        <div class="divider"></div>
-        <div class="section-label">Packed Red Cell Transfusion</div>
-        <label class="extra-input-label">Desired Hb rise (g/dL)</label>
-        <input type="number" class="extra-input" id="prc-hb-rise" min="0.5" max="10" step="0.5" placeholder="e.g. 2">
-        <div class="result-container">
-          <div class="result-value" id="prc-result">—</div>
-          <span class="result-unit">ml</span>
-          <div class="result-formula" id="prc-formula"></div>
-        </div>
-      </div>
-
+    <div class="worksheet-header">
+      <div class="worksheet-patient-name" id="ws-patient-name">Patient</div>
+      <div class="worksheet-patient-meta" id="ws-patient-meta"></div>
     </div>
-  </div><!-- /screen-fluids -->
+
+    <div class="scroll-area" id="worksheet-content">
+      <!-- Generated dynamically -->
+    </div>
+
+  </div><!-- /screen-worksheet -->
 
 
   <!-- ============================================================
-       SCREEN: REGIONAL MODULE
-       ============================================================ -->
-  <div class="screen" id="screen-regional">
-    <div class="scroll-area">
-      <div class="module-title">Regional Anaesthesia</div>
-      <div class="module-subtitle">LA dosing, caudal block, LAST rescue</div>
-
-      <!-- LA toxicity warning — always shown -->
-      <div class="warning-banner amber">
-        ⚠ Calculate total LA dose across ALL agents — toxicity is additive.
-      </div>
-
-      <!-- Sub-module selector -->
-      <div class="fluid-option-grid mt-12">
-        <button class="fluid-option-btn active" data-regional="la-max">LA Max Dose</button>
-        <button class="fluid-option-btn" data-regional="caudal">Caudal Block</button>
-        <button class="fluid-option-btn" data-regional="last">LAST Rescue</button>
-        <button class="fluid-option-btn" data-regional="infusion">Infusion Rate</button>
-      </div>
-
-      <!-- LA Max -->
-      <div id="regional-la-max">
-        <div class="section-label">Local Anaesthetic</div>
-        <div class="la-drug-selector">
-          <button class="la-drug-btn active" data-la="lidocaine">Lidocaine</button>
-          <button class="la-drug-btn" data-la="bupivacaine">Bupivacaine</button>
-          <button class="la-drug-btn" data-la="levobupivacaine">Levobupivacaine</button>
-          <button class="la-drug-btn" data-la="ropivacaine">Ropivacaine</button>
-        </div>
-        <div class="source-toggle mb-12">
-          <button class="source-btn active" id="la-plain-btn">Plain</button>
-          <button class="source-btn" id="la-adr-btn">With Adrenaline</button>
-        </div>
-        <div class="warning-banner hidden" id="la-warning-banner"></div>
-        <div class="result-container mt-12">
-          <div class="result-value" id="la-result-value">—</div>
-          <span class="result-unit">mg</span>
-          <div class="result-formula" id="la-result-formula"></div>
-        </div>
-      </div>
-
-      <!-- Caudal -->
-      <div id="regional-caudal" class="hidden">
-        <div class="section-label">Block Level</div>
-        <div class="tier-selector mb-12">
-          <button class="tier-btn active" data-level="sacral">Sacral<br><small>0.5 ml/kg</small></button>
-          <button class="tier-btn" data-level="lumbar">Lumbar<br><small>1.0 ml/kg</small></button>
-          <button class="tier-btn" data-level="thoracic">Thoracic<br><small>1.25 ml/kg</small></button>
-        </div>
-        <div class="warning-banner danger hidden" id="caudal-warning-banner"></div>
-        <div class="result-container">
-          <div class="result-value" id="caudal-result-value">—</div>
-          <span class="result-unit">ml</span>
-          <div class="result-formula" id="caudal-result-formula"></div>
-        </div>
-        <div class="info-chip mt-8" style="display:inline-block;">
-          Standard solution: Bupivacaine 0.25% ± adrenaline 1:200,000
-        </div>
-      </div>
-
-      <!-- LAST rescue -->
-      <div id="regional-last" class="hidden">
-        <div class="warning-banner danger">
-          🔴 LAST RESCUE — Intralipid 20% ONLY. Continue CPR. Call for senior help immediately.
-        </div>
-        <div class="multi-result mt-12">
-          <div class="multi-result-cell">
-            <div class="mrc-label">Bolus (over 1 min)</div>
-            <div class="mrc-value" id="last-bolus">—</div>
-            <div class="mrc-unit">ml</div>
-          </div>
-          <div class="multi-result-cell">
-            <div class="mrc-label">Infusion rate</div>
-            <div class="mrc-value" id="last-infusion">—</div>
-            <div class="mrc-unit">ml/min</div>
-          </div>
-          <div class="multi-result-cell">
-            <div class="mrc-label">Max cumulative</div>
-            <div class="mrc-value" id="last-max">—</div>
-            <div class="mrc-unit">ml</div>
-          </div>
-        </div>
-        <div class="card mt-12">
-          <div class="card-title">Protocol</div>
-          <div style="font-size:14px;color:var(--text-sec);line-height:1.6;">
-            1. Bolus 1.5 ml/kg over 1 minute<br>
-            2. Start infusion 0.25 ml/kg/min<br>
-            3. Repeat bolus ×2 if no response<br>
-            4. Max cumulative: 10 ml/kg over 30 min<br>
-            <em>Source: AAGBI 2010</em>
-          </div>
-        </div>
-      </div>
-
-      <!-- Infusion rate calculator -->
-      <div id="regional-infusion" class="hidden">
-        <div class="warning-banner amber">
-          ⚠ ALWAYS confirm concentration units (mcg vs mg) before entering values.
-        </div>
-        <div class="age-row mt-12 mb-12">
-          <div class="age-input-wrap">
-            <label>Dose (mcg/kg/min)</label>
-            <input type="number" class="extra-input" id="infusion-dose"
-                   min="0.001" step="0.001" placeholder="e.g. 0.1">
-          </div>
-          <div class="age-input-wrap">
-            <label>Concentration (mcg/ml)</label>
-            <input type="number" class="extra-input" id="infusion-conc"
-                   min="0.1" step="0.1" placeholder="e.g. 50">
-          </div>
-        </div>
-        <div class="result-container">
-          <div class="result-value" id="infusion-result-value">—</div>
-          <span class="result-unit">ml/hr</span>
-          <div class="result-formula" id="infusion-result-formula"></div>
-        </div>
-        <div class="card mt-8">
-          <div class="card-title">Formula</div>
-          <div style="font-size:14px;color:var(--text-sec);">
-            Dose (mcg/kg/min) × Weight (kg) × 60 ÷ Concentration (mcg/ml) = Rate (ml/hr)
-          </div>
-        </div>
-      </div>
-
-    </div>
-  </div><!-- /screen-regional -->
-
-
-  <!-- ============================================================
-       SCREEN: EMERGENCY MODULE
+       SCREEN 5: EMERGENCY MODULE
        ============================================================ -->
   <div class="screen" id="screen-emergency">
-    <div id="screen-emergency-content" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px;">
+    <div id="screen-emergency-content">
 
-      <div class="module-title" style="color:#fca5a5;">🚨 Emergency Drugs</div>
-      <div class="module-subtitle">All doses calculated for current patient weight</div>
+      <div class="emergency-title">🚨 Emergency Drugs</div>
+      <div class="emergency-subtitle">All doses calculated for current patient weight</div>
 
-      <!-- Inline quick start if no weight -->
+      <!-- No weight state -->
       <div id="emergency-no-weight" class="hidden">
-        <div class="warning-banner danger" style="border-radius:var(--radius);margin-bottom:12px;">
-          No patient weight entered. Select estimated weight to continue.
+        <div class="warning-banner danger">
+          No patient weight entered. Select an estimated weight to continue.
         </div>
-        <div class="quickstart-grid">
-          <button class="quickstart-btn" data-qs-weight="5" data-qs-age="0" data-qs-emergency="1">
-            <span class="qs-weight">5 kg</span><span class="qs-label">Neonate</span>
+        <div class="emergency-quickstart-grid">
+          <button class="emergency-qs-btn" data-qs-weight="5" data-qs-age="0">
+            <div class="qs-w">5 kg</div><div class="qs-l">Neonate</div>
           </button>
-          <button class="quickstart-btn" data-qs-weight="10" data-qs-age="12" data-qs-emergency="1">
-            <span class="qs-weight">10 kg</span><span class="qs-label">~1 year</span>
+          <button class="emergency-qs-btn" data-qs-weight="10" data-qs-age="12">
+            <div class="qs-w">10 kg</div><div class="qs-l">~1 year</div>
           </button>
-          <button class="quickstart-btn" data-qs-weight="20" data-qs-age="60" data-qs-emergency="1">
-            <span class="qs-weight">20 kg</span><span class="qs-label">~5 years</span>
+          <button class="emergency-qs-btn" data-qs-weight="20" data-qs-age="60">
+            <div class="qs-w">20 kg</div><div class="qs-l">~5 years</div>
           </button>
-          <button class="quickstart-btn" data-qs-weight="30" data-qs-age="120" data-qs-emergency="1">
-            <span class="qs-weight">30 kg</span><span class="qs-label">~10 years</span>
+          <button class="emergency-qs-btn" data-qs-weight="30" data-qs-age="120">
+            <div class="qs-w">30 kg</div><div class="qs-l">~10 years</div>
           </button>
         </div>
       </div>
 
-      <!-- Emergency results (shown when weight available) -->
-      <div id="emergency-results" class="hidden">
+      <!-- Emergency cards — generated dynamically -->
+      <div id="emergency-cards"></div>
 
-        <!-- Adrenaline — two separate cards, concentration always first -->
-        <!-- Cardiac arrest card (red) -->
-        <div class="emergency-card arrest">
-          <div class="ec-concentration">IV/IO ARREST → 1:10,000 (10 mcg/ml)</div>
-          <div class="ec-title">Adrenaline — Cardiac Arrest</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
-            <div style="text-align:center;">
-              <div style="font-size:13px;color:#fca5a5;margin-bottom:4px;">Dose</div>
-              <div class="ec-result" id="em-arrest-dose">—</div>
-              <div class="ec-unit">mcg</div>
-            </div>
-            <div style="text-align:center;">
-              <div style="font-size:13px;color:#fca5a5;margin-bottom:4px;">Volume</div>
-              <div class="ec-result" id="em-arrest-vol">—</div>
-              <div class="ec-unit">ml</div>
-            </div>
-          </div>
-          <div class="ec-formula" id="em-arrest-formula"></div>
-        </div>
-
-        <!-- Anaphylaxis card (purple) -->
-        <div class="emergency-card anaphylaxis">
-          <div class="ec-concentration" style="background:rgba(124,58,237,0.2);color:#c4b5fd;">
-            IM ANAPHYLAXIS → 1:1,000 (1 mg/ml)
-          </div>
-          <div class="ec-title">Adrenaline — Anaphylaxis</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
-            <div style="text-align:center;">
-              <div style="font-size:13px;color:#c4b5fd;margin-bottom:4px;">Dose</div>
-              <div class="ec-result" id="em-ana-dose">—</div>
-              <div class="ec-unit">mcg</div>
-            </div>
-            <div style="text-align:center;">
-              <div style="font-size:13px;color:#c4b5fd;margin-bottom:4px;">Volume</div>
-              <div class="ec-result" id="em-ana-vol">—</div>
-              <div class="ec-unit">ml</div>
-            </div>
-          </div>
-          <div class="ec-formula" id="em-ana-formula"></div>
-        </div>
-
-        <!-- Standard emergency drugs -->
-        <div class="emergency-card standard">
-          <div class="ec-title">Atropine (bradycardia)</div>
-          <div style="display:flex;align-items:baseline;gap:6px;margin-top:6px;">
-            <div class="ec-result" id="em-atropine">—</div>
-            <div class="ec-unit">mg IV</div>
-          </div>
-          <div class="ec-formula" id="em-atropine-formula"></div>
-        </div>
-
-        <div class="emergency-card standard">
-          <div class="ec-title">Adenosine — SVT</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;">
-            <div style="text-align:center;">
-              <div style="font-size:12px;color:var(--text-sec);margin-bottom:4px;">1st dose</div>
-              <div class="ec-result" style="font-size:36px;" id="em-aden-1">—</div>
-              <div class="ec-unit">mg</div>
-            </div>
-            <div style="text-align:center;">
-              <div style="font-size:12px;color:var(--text-sec);margin-bottom:4px;">2nd dose</div>
-              <div class="ec-result" style="font-size:36px;" id="em-aden-2">—</div>
-              <div class="ec-unit">mg</div>
-            </div>
-          </div>
-          <div style="font-size:13px;color:var(--text-sec);margin-top:8px;">Rapid IV push + immediate saline flush</div>
-        </div>
-
-        <div class="emergency-card standard">
-          <div class="ec-title">Glucose — Hypoglycaemia</div>
-          <div style="display:flex;align-items:baseline;gap:6px;margin-top:6px;">
-            <div class="ec-result" id="em-glucose">—</div>
-            <div class="ec-unit">ml D10 IV</div>
-          </div>
-          <div style="font-size:13px;color:var(--text-sec);margin-top:4px;">
-            Low-resource: 1 ml D50 + 4 ml sterile water = 5 ml D10
-          </div>
-        </div>
-
-        <div class="emergency-card standard">
-          <div class="ec-title">Calcium Gluconate (10%)</div>
-          <div style="display:flex;align-items:baseline;gap:6px;margin-top:6px;">
-            <div class="ec-result" style="font-size:36px;" id="em-calcium">—</div>
-            <div class="ec-unit">ml slow IV</div>
-          </div>
-          <div style="font-size:13px;color:var(--text-sec);margin-top:4px;">Monitor ECG during administration</div>
-        </div>
-
-        <div class="emergency-card standard">
-          <div class="ec-title">Sodium Bicarbonate</div>
-          <div style="display:flex;align-items:baseline;gap:6px;margin-top:6px;">
-            <div class="ec-result" style="font-size:36px;" id="em-bicarb">—</div>
-            <div class="ec-unit">mmol IV</div>
-          </div>
-          <div style="font-size:13px;color:var(--text-sec);margin-top:4px;" id="em-bicarb-note">
-            Dilute 1:1 in neonates.
-          </div>
-        </div>
-
-      </div><!-- /emergency-results -->
     </div>
   </div><!-- /screen-emergency -->
 
 
-  <!-- Bottom navigation -->
+  <!-- BOTTOM NAV -->
   <nav id="bottom-nav">
-    <button class="nav-tab active" data-tab="drugs">
-      <span class="tab-icon">💊</span>
-      <span>Drugs</span>
-    </button>
-    <button class="nav-tab" data-tab="airway">
-      <span class="tab-icon">🫁</span>
-      <span>Airway</span>
-    </button>
-    <button class="nav-tab" data-tab="fluids">
-      <span class="tab-icon">💧</span>
-      <span>Fluids</span>
-    </button>
-    <button class="nav-tab" data-tab="regional">
-      <span class="tab-icon">📍</span>
-      <span>Regional</span>
-    </button>
-    <button class="nav-tab" data-tab="emergency">
-      <span class="tab-icon">🚨</span>
-      <span>Emergency</span>
-    </button>
+    <div class="nav-tabs">
+      <button class="nav-tab active" data-tab="worksheet">
+        <span class="nav-icon">📋</span>
+        <span>Worksheet</span>
+      </button>
+      <button class="nav-tab" data-tab="emergency">
+        <span class="nav-icon">🚨</span>
+        <span>Emergency</span>
+      </button>
+    </div>
   </nav>
 
-  <!-- Footer offline indicator -->
+  <!-- FOOTER -->
   <div id="footer-bar">
-    <span id="footer-status">v1.0.0</span>
+    PaedSafe &middot; Dr. John Afam &middot; v1.1.0
   </div>
 
 </div><!-- /app -->
 
 
 <!-- ============================================================
-     SCRIPTS — dependency order per 03_technical_architecture.md §7
+     SCRIPT LOAD + DEPENDENCY GUARDS
      ============================================================ -->
-<script src="./data.js"></script>
+<script src="data.js"></script>
 <script>
-  // Dependency guard — data.js
   if (!window.PaedSafe?.data || !window.PaedSafe?.config) {
     document.getElementById("screen-error").classList.remove("hidden");
     throw new Error("PaedSafe: data.js failed to load");
   }
-  if (window.PaedSafe.schemaError) {
-    document.getElementById("screen-error").classList.remove("hidden");
-    throw new Error("PaedSafe: schema error — " + window.PaedSafe.schemaError);
-  }
 </script>
-<script src="./calc.js"></script>
+<script src="calc.js"></script>
 <script>
-  // Dependency guard — calc.js
   if (!window.PaedSafe?.calc) {
     document.getElementById("screen-error").classList.remove("hidden");
     throw new Error("PaedSafe: calc.js failed to load");
@@ -1833,1017 +1721,59 @@
 "use strict";
 
 // =============================================================================
-// UI STATE MACHINE
-// Per 03_technical_architecture.md §16 and 04_ui_ux_principles.md §16
+// CONSTANTS
 // =============================================================================
+
+const SESSION_KEY    = "paed-safe-session-v2";
+const DISCLAIMER_KEY = "paed-safe-disclaimer-v1.1";
 
 const STATES = {
-  EMPTY_SESSION:     "EMPTY_SESSION",
+  INTRO:             "INTRO",
   PATIENT_SETUP:     "PATIENT_SETUP",
-  ACTIVE_CALCULATION:"ACTIVE_CALCULATION",
-  RESULT_VISIBLE:    "RESULT_VISIBLE",
+  MODULE_SELECTION:  "MODULE_SELECTION",
+  WORKSHEET:         "WORKSHEET",
   EMERGENCY_MODE:    "EMERGENCY_MODE",
-  ERROR_BLOCKED:     "ERROR_BLOCKED",
-  OFFLINE_INDICATED: "OFFLINE_INDICATED"
+  ERROR_BLOCKED:     "ERROR_BLOCKED"
 };
 
-window.PaedSafe.ui = {
-  state:       STATES.EMPTY_SESSION,
-  activeTab:   "drugs",
-  activeDrug:  null,
-  sugarTier:   "moderate",
-  fluidMode:   "maintenance",
-  bolusType:   "crystalloid",
-  regionalMode:"la-max",
-  laDrug:      "lidocaine",
-  laWithAdr:   false,
-  caudalLevel: "sacral",
-  refOpen:     false
+// All drug categories and their display labels
+const DRUG_CATEGORIES = {
+  induction:  "Induction",
+  nmba:       "Muscle Relaxants",
+  opioid:     "Opioids",
+  reversal:   "Reversal",
+  antiemetic: "Antiemetics",
+  analgesic:  "Analgesics"
 };
 
 // =============================================================================
-// SESSION STATE (patient data)
+// APP STATE
 // =============================================================================
+
+window.PaedSafe.ui = window.PaedSafe.ui || {};
+window.PaedSafe.ui.state = STATES.INTRO;
+window.PaedSafe.ui.activeTab = "worksheet";
+
 window.PaedSafe.patient = {
   weightKg:     null,
   ageMonths:    null,
-  weightSource: "actual"
+  weightSource: "actual",
+  patientId:    ""
 };
 
-const SESSION_KEY = "paed-safe-session";
-const DISCLAIMER_KEY = "paed-safe-disclaimer-v1.0.0";
-
-// =============================================================================
-// HELPERS
-// =============================================================================
-
-function formatAge(months) {
-  if (months === null || months === undefined) return "—";
-  const y = Math.floor(months / 12);
-  const m = months % 12;
-  if (y === 0) return `${m}m`;
-  if (m === 0) return `${y}y`;
-  return `${y}y ${m}m`;
-}
-
-function isNeonatePatient() {
-  const p = window.PaedSafe.patient;
-  return p.ageMonths !== null && p.weightKg !== null &&
-         (p.ageMonths < 1 || p.weightKg < 5);
-}
-
-function hasPatient() {
-  const p = window.PaedSafe.patient;
-  return p.weightKg !== null && p.ageMonths !== null;
-}
-
-function getPatientInput() {
-  const p = window.PaedSafe.patient;
-  return {
-    weightKg:     p.weightKg,
-    ageMonths:    p.ageMonths,
-    weightSource: p.weightSource
-  };
-}
-
-/**
- * assertShape — Step 4a of calculation pipeline.
- * Verifies result conforms to output contract before rendering.
- */
-function assertShape(result) {
-  if (!result || typeof result !== "object") return false;
-  const required = ["value", "unit", "formula", "warning", "reference", "trace"];
-  return required.every(k => k in result);
-}
-
-/**
- * clearDisplay — Step 0 of calculation pipeline.
- * Always runs before reading inputs.
- */
-function clearDisplay(resultEl, formulaEl, warningEl) {
-  if (resultEl) { resultEl.textContent = "—"; resultEl.className = "result-value empty"; }
-  if (formulaEl) { formulaEl.textContent = ""; formulaEl.classList.add("hidden"); }
-  if (warningEl) { warningEl.textContent = ""; warningEl.classList.add("hidden"); }
-}
-
-/**
- * Pulse animation on result container — Step 7.
- */
-function pulseResult(container) {
-  if (!container) return;
-  container.classList.remove("pulse");
-  void container.offsetWidth; // force reflow
-  container.classList.add("pulse");
-}
-
-// =============================================================================
-// PATIENT BAR
-// =============================================================================
-
-function updatePatientBar() {
-  const p = window.PaedSafe.patient;
-  const bar = document.getElementById("patient-bar");
-  const weightEl = document.getElementById("bar-weight");
-  const ageEl = document.getElementById("bar-age");
-  const estBadge = document.getElementById("est-badge");
-  const neoBanner = document.getElementById("neonate-banner");
-
-  if (!hasPatient()) {
-    bar.classList.remove("visible");
-    neoBanner.classList.remove("visible");
-    return;
-  }
-
-  bar.classList.add("visible");
-  weightEl.textContent = p.weightKg.toFixed(1);
-  ageEl.textContent = formatAge(p.ageMonths);
-
-  if (p.weightSource === "estimated") {
-    estBadge.classList.add("visible");
-  } else {
-    estBadge.classList.remove("visible");
-  }
-
-  if (isNeonatePatient()) {
-    neoBanner.classList.add("visible");
-  } else {
-    neoBanner.classList.remove("visible");
-  }
-}
-
-// =============================================================================
-// SCREEN ROUTING
-// =============================================================================
-
-const SCREEN_MAP = {
-  drugs:     "screen-drugs",
-  airway:    "screen-airway",
-  fluids:    "screen-fluids",
-  regional:  "screen-regional",
-  emergency: "screen-emergency"
+// Selection state for worksheet
+window.PaedSafe.selection = {
+  drugs:   [],   // array of drug IDs
+  airway:  true,
+  fluids:  true,
+  regional:true
 };
 
-function showScreen(screenId) {
-  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
-  const target = document.getElementById(screenId);
-  if (target) target.classList.add("active");
-}
-
-function switchTab(tab) {
-  // Always accessible — emergency bypasses patient check
-  if (tab !== "emergency" && !hasPatient()) {
-    // Route to setup if no patient
-    showScreen("screen-setup");
-    document.getElementById("bottom-nav").classList.remove("visible");
-    document.getElementById("footer-bar").classList.remove("visible");
-    return;
-  }
-
-  window.PaedSafe.ui.activeTab = tab;
-
-  // Update nav highlight
-  document.querySelectorAll(".nav-tab").forEach(t => {
-    t.classList.toggle("active", t.dataset.tab === tab);
-  });
-
-  if (tab === "emergency") {
-    window.PaedSafe.ui.state = STATES.EMERGENCY_MODE;
-    showScreen("screen-emergency");
-    renderEmergencyModule();
-  } else {
-    showScreen(SCREEN_MAP[tab]);
-    if (tab === "drugs") {
-      showDrugList();
-    } else if (tab === "airway") {
-      renderAirwayModule();
-    } else if (tab === "fluids") {
-      renderFluidsModule();
-    } else if (tab === "regional") {
-      renderRegionalModule();
-    }
-  }
-}
-
-// =============================================================================
-// PATIENT SETUP
-// =============================================================================
-
+// Internal weight value (mirrors slider + manual)
 let _weightVal = 10.0;
 
-function initSetupScreen() {
-  const slider = document.getElementById("weight-slider");
-  const display = document.getElementById("weight-value");
-  const manualInput = document.getElementById("weight-manual");
-  const weightDisplay = document.getElementById("weight-display");
-
-  // Slider → display
-  slider.addEventListener("input", () => {
-    _weightVal = parseFloat(slider.value);
-    display.textContent = _weightVal.toFixed(1);
-    manualInput.classList.add("hidden");
-  });
-
-  // Tap weight display → show manual input
-  weightDisplay.addEventListener("click", () => {
-    manualInput.classList.toggle("hidden");
-    if (!manualInput.classList.contains("hidden")) {
-      manualInput.value = _weightVal.toFixed(1);
-      manualInput.focus();
-    }
-  });
-
-  // Manual input → update slider and display
-  manualInput.addEventListener("input", () => {
-    const v = parseFloat(manualInput.value);
-    if (!isNaN(v) && v > 0 && v <= 150) {
-      _weightVal = v;
-      slider.value = Math.min(v, 80);
-      display.textContent = v.toFixed(1);
-    }
-  });
-
-  // Weight source toggle
-  document.getElementById("btn-actual").addEventListener("click", () => {
-    setWeightSource("actual");
-  });
-  document.getElementById("btn-estimated").addEventListener("click", () => {
-    setWeightSource("estimated");
-  });
-
-  // Confirm patient
-  document.getElementById("btn-confirm-patient").addEventListener("click", confirmPatient);
-
-  // Quick Start buttons (setup screen)
-  document.querySelectorAll(".quickstart-btn:not([data-qs-emergency])").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const w = parseFloat(btn.dataset.qsWeight);
-      const a = parseInt(btn.dataset.qsAge, 10);
-      quickStart(w, a);
-    });
-  });
-
-  // Change patient button
-  document.getElementById("btn-change-patient").addEventListener("click", () => {
-    goToSetup();
-  });
-
-  // Resume prompt
-  document.getElementById("btn-resume-continue").addEventListener("click", resumeSession);
-  document.getElementById("btn-resume-new").addEventListener("click", () => {
-    sessionStorage.removeItem(SESSION_KEY);
-    document.getElementById("resume-prompt").classList.add("hidden");
-  });
-}
-
-function setWeightSource(source) {
-  window.PaedSafe.patient.weightSource = source;
-  document.getElementById("btn-actual").classList.toggle("active", source === "actual");
-  document.getElementById("btn-estimated").classList.toggle("active", source === "estimated");
-}
-
-function confirmPatient() {
-  const weightKg  = _weightVal;
-  const years     = parseInt(document.getElementById("age-years").value, 10) || 0;
-  const months    = parseInt(document.getElementById("age-months-input").value, 10) || 0;
-  const ageMonths = (years * 12) + months;
-
-  const cfg = window.PaedSafe.config;
-
-  if (!weightKg || weightKg <= 0 || weightKg > cfg.maxWeightKg) {
-    alert("Please enter a valid weight (0.5–150 kg).");
-    return;
-  }
-
-  if (ageMonths < 0 || ageMonths > cfg.maxAgeMonths) {
-    alert("Please enter a valid age (0–18 years).");
-    return;
-  }
-
-  setPatient(weightKg, ageMonths, window.PaedSafe.patient.weightSource);
-  persistSession();
-  enterCalculationMode();
-}
-
-function quickStart(weightKg, ageMonths) {
-  setPatient(weightKg, ageMonths, "estimated");
-  persistSession();
-  enterCalculationMode();
-}
-
-function setPatient(weightKg, ageMonths, source) {
-  window.PaedSafe.patient.weightKg     = weightKg;
-  window.PaedSafe.patient.ageMonths    = ageMonths;
-  window.PaedSafe.patient.weightSource = source;
-  window.PaedSafe.calc.resetLaSession();
-}
-
-function enterCalculationMode() {
-  updatePatientBar();
-  document.getElementById("bottom-nav").classList.add("visible");
-  document.getElementById("footer-bar").classList.add("visible");
-  window.PaedSafe.ui.state = STATES.ACTIVE_CALCULATION;
-  switchTab(window.PaedSafe.ui.activeTab === "emergency" ? "drugs" : window.PaedSafe.ui.activeTab);
-  buildDrugList();
-}
-
-function goToSetup() {
-  window.PaedSafe.ui.state = STATES.PATIENT_SETUP;
-  document.getElementById("bottom-nav").classList.remove("visible");
-  document.getElementById("footer-bar").classList.remove("visible");
-  updatePatientBar();
-  showScreen("screen-setup");
-}
-
 // =============================================================================
-// SESSION PERSISTENCE — Policy 1 & Policy 2
-// =============================================================================
-
-function persistSession() {
-  const session = {
-    weightKg:     window.PaedSafe.patient.weightKg,
-    ageMonths:    window.PaedSafe.patient.ageMonths,
-    weightSource: window.PaedSafe.patient.weightSource,
-    savedAt:      Date.now()
-  };
-  try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(session)); } catch(e) {}
-}
-
-function checkResumeSession() {
-  try {
-    const raw = sessionStorage.getItem(SESSION_KEY);
-    if (!raw) return false;
-    const session = JSON.parse(raw);
-    if (!session.weightKg || !session.ageMonths) return false;
-
-    const prompt = document.getElementById("resume-prompt");
-    const text   = document.getElementById("resume-text");
-    text.textContent = `Previous session: ${session.weightKg} kg, ${formatAge(session.ageMonths)}. Resume or start new patient?`;
-    prompt.classList.remove("hidden");
-
-    // Store temporarily for resume
-    window._pendingSession = session;
-    return true;
-  } catch(e) { return false; }
-}
-
-function resumeSession() {
-  const s = window._pendingSession;
-  if (!s) return;
-  setPatient(s.weightKg, s.ageMonths, s.weightSource || "actual");
-  document.getElementById("resume-prompt").classList.add("hidden");
-  enterCalculationMode();
-}
-
-// Policy 2 — inactive timeout
-let _hiddenAt = null;
-
-document.addEventListener("visibilitychange", () => {
-  if (document.hidden) {
-    _hiddenAt = Date.now();
-  } else {
-    if (_hiddenAt !== null && window.PaedSafe.ui.state !== STATES.EMERGENCY_MODE) {
-      const elapsed = (Date.now() - _hiddenAt) / 1000 / 60;
-      if (elapsed >= window.PaedSafe.config.sessionTimeout) {
-        // Wipe session — Policy 2 overrides Policy 1
-        sessionStorage.removeItem(SESSION_KEY);
-        window.PaedSafe.patient = { weightKg: null, ageMonths: null, weightSource: "actual" };
-        window.PaedSafe.calc.resetLaSession();
-        goToSetup();
-      }
-    }
-    _hiddenAt = null;
-  }
-});
-
-// =============================================================================
-// DRUG MODULE
-// =============================================================================
-
-function buildDrugList() {
-  const container = document.getElementById("drug-list-container");
-  const drugs     = window.PaedSafe.data.drugs;
-
-  const categoryLabels = {
-    induction:       "Induction Agents",
-    nmba:            "Muscle Relaxants",
-    opioid:          "Opioids",
-    reversal:        "Reversal Agents",
-    antiemetic:      "Antiemetics",
-    analgesic:       "Analgesics",
-    sedation:        "Sedation / Premedication",
-    anticonvulsant:  "Anticonvulsants"
-  };
-
-  const grouped = {};
-  drugs.forEach(d => {
-    if (!grouped[d.category]) grouped[d.category] = [];
-    grouped[d.category].push(d);
-  });
-
-  let html = "";
-  for (const [cat, catDrugs] of Object.entries(grouped)) {
-    html += `<div class="drug-category-label">${categoryLabels[cat] || cat}</div>`;
-    catDrugs.forEach(drug => {
-      const routes = drug.routes.join(" / ");
-      html += `
-        <button class="drug-item" data-drug-id="${drug.id}">
-          <div>
-            <div class="drug-name">${drug.name}</div>
-            <div class="drug-route">${routes}</div>
-          </div>
-          <div class="drug-arrow">›</div>
-        </button>`;
-    });
-  }
-  container.innerHTML = html;
-
-  // Bind drug item clicks
-  container.querySelectorAll(".drug-item").forEach(btn => {
-    btn.addEventListener("click", () => selectDrug(btn.dataset.drugId));
-  });
-}
-
-function initDrugSearch() {
-  document.getElementById("drug-search").addEventListener("input", function() {
-    const q = this.value.toLowerCase().trim();
-    document.querySelectorAll(".drug-item").forEach(btn => {
-      const name = btn.querySelector(".drug-name").textContent.toLowerCase();
-      btn.style.display = (!q || name.includes(q)) ? "" : "none";
-    });
-    document.querySelectorAll(".drug-category-label").forEach(label => {
-      // Hide category if all its siblings are hidden
-      let next = label.nextElementSibling;
-      let anyVisible = false;
-      while (next && !next.classList.contains("drug-category-label")) {
-        if (next.style.display !== "none") anyVisible = true;
-        next = next.nextElementSibling;
-      }
-      label.style.display = anyVisible ? "" : "none";
-    });
-  });
-}
-
-function showDrugList() {
-  document.getElementById("drugs-list-view").classList.remove("hidden");
-  document.getElementById("drugs-detail-view").classList.add("hidden");
-  window.PaedSafe.ui.activeDrug = null;
-}
-
-function selectDrug(drugId) {
-  window.PaedSafe.ui.activeDrug = drugId;
-  window.PaedSafe.ui.state = STATES.ACTIVE_CALCULATION;
-
-  const drug = { ...window.PaedSafe.data.drugs.find(d => d.id === drugId) };
-  if (!drug.id) return;
-
-  document.getElementById("detail-drug-name").textContent = drug.name;
-  document.getElementById("detail-drug-category").textContent =
-    drug.category.charAt(0).toUpperCase() + drug.category.slice(1);
-
-  // Routes
-  document.getElementById("drug-route-display").textContent = drug.routes.join(" / ");
-
-  // Max dose chip
-  const maxChip = document.getElementById("drug-max-chip");
-  if (drug.maxDose !== null) {
-    document.getElementById("drug-max-display").textContent = `${drug.maxDose} ${drug.unit.replace("/kg","")}`;
-    maxChip.style.display = "inline-flex";
-  } else {
-    maxChip.style.display = "none";
-  }
-
-  // Reference
-  document.getElementById("drug-ref-body").textContent = drug.reference;
-  document.getElementById("drug-ref-body").classList.remove("open");
-  document.getElementById("drug-ref-chevron").textContent = "▸";
-
-  // Show/hide sugammadex tier selector
-  const sugarSel = document.getElementById("sugammadex-selector");
-  sugarSel.classList.toggle("hidden", drugId !== "sugammadex");
-
-  // Switch view
-  document.getElementById("drugs-list-view").classList.add("hidden");
-  document.getElementById("drugs-detail-view").classList.remove("hidden");
-  document.getElementById("drugs-detail-view").style.display = "flex";
-
-  // Calculate immediately
-  runDrugCalc();
-}
-
-function runDrugCalc() {
-  // Step 0 — clear display
-  const resultEl   = document.getElementById("drug-result-value");
-  const formulaEl  = document.getElementById("drug-result-formula");
-  const warningEl  = document.getElementById("drug-warning-banner");
-  const container  = document.getElementById("drug-result-container");
-  const hintEl     = document.getElementById("drug-result-hint");
-
-  clearDisplay(resultEl, formulaEl, warningEl);
-
-  const drugId = window.PaedSafe.ui.activeDrug;
-  if (!drugId) return;
-
-  // Steps 1–3 handled by calc.js validation
-  let result;
-  if (drugId === "sugammadex") {
-    result = window.PaedSafe.calc.sugammadex(
-      window.PaedSafe.ui.sugarTier,
-      getPatientInput()
-    );
-  } else {
-    result = window.PaedSafe.calc.drug(drugId, getPatientInput());
-  }
-
-  // Step 4a — shape check
-  if (!assertShape(result)) {
-    window.PaedSafe.ui.state = STATES.ERROR_BLOCKED;
-    resultEl.textContent = "Error";
-    resultEl.className = "result-value text-danger";
-    warningEl.textContent = "Calculation error — return to patient setup.";
-    warningEl.className = "warning-banner danger";
-    return;
-  }
-
-  // Step 5 — sanity / null check
-  if (result.value === null) {
-    resultEl.textContent = "—";
-    resultEl.className = "result-value empty";
-    hintEl.textContent = result.warning || "Enter patient data to calculate";
-    hintEl.style.display = "block";
-    return;
-  }
-
-  hintEl.style.display = "none";
-
-  // Step 6 — rounding already done in calc.js
-  // Step 7 — render
-  if (typeof result.value === "object" && result.value.min !== undefined) {
-    resultEl.textContent = `${result.value.min}–${result.value.max}`;
-  } else {
-    resultEl.textContent = result.value;
-  }
-  resultEl.className = "result-value";
-
-  formulaEl.textContent = result.formula;
-  formulaEl.classList.remove("hidden");
-
-  if (result.warning) {
-    // Determine severity — red if danger keywords present
-    const isDanger = result.warning.includes("🔴") ||
-                     result.warning.includes("EXCEEDED") ||
-                     result.warning.includes("NEONATE") ||
-                     result.warning.includes("AVOID");
-    warningEl.textContent = result.warning;
-    warningEl.className = `warning-banner ${isDanger ? "danger" : "amber"}`;
-  }
-
-  window.PaedSafe.ui.state = STATES.RESULT_VISIBLE;
-  pulseResult(container);
-}
-
-// =============================================================================
-// AIRWAY MODULE
-// =============================================================================
-
-function renderAirwayModule() {
-  if (!hasPatient()) return;
-  const patient = getPatientInput();
-
-  const ettResult  = window.PaedSafe.calc.ett(patient);
-  const lmaResult  = window.PaedSafe.calc.lma(patient);
-  const maskResult = window.PaedSafe.calc.faceMask(patient);
-  const bladeResult= window.PaedSafe.calc.laryngoscope(patient);
-
-  // ETT
-  if (ettResult.value) {
-    const v = ettResult.value;
-    document.getElementById("ett-uncuffed").innerHTML =
-      v.uncuffedId !== null ? `${v.uncuffedId}<span class="cell-unit">mm</span>` : `<span style="font-size:14px;color:var(--text-sec)">Clinical sizing</span>`;
-    document.getElementById("ett-cuffed").innerHTML =
-      v.cuffedId !== null ? `${v.cuffedId}<span class="cell-unit">mm</span>` : `<span style="font-size:14px;color:var(--text-sec)">Clinical sizing</span>`;
-    document.getElementById("ett-oral").innerHTML =
-      `${v.oralLength}<span class="cell-unit">cm</span>`;
-    document.getElementById("ett-nasal").innerHTML =
-      v.nasalLength ? `${v.nasalLength}<span class="cell-unit">cm</span>` : `<span style="font-size:14px;color:var(--text-sec)">N/A <1yr</span>`;
-
-    // Suction
-    document.getElementById("suction-uncuffed").innerHTML =
-      v.suctionCatheterUncuffed ? `${v.suctionCatheterUncuffed}<span class="cell-unit">Fr</span>` : "—";
-    document.getElementById("suction-cuffed").innerHTML =
-      v.suctionCatheterCuffed ? `${v.suctionCatheterCuffed}<span class="cell-unit">Fr</span>` : "—";
-  }
-
-  // LMA
-  if (lmaResult.value) {
-    document.getElementById("lma-size").textContent = lmaResult.value.size;
-    document.getElementById("lma-cuff").innerHTML =
-      `${lmaResult.value.maxCuffMl}<span class="cell-unit">ml</span>`;
-  }
-
-  // Face mask
-  if (maskResult.value !== null) {
-    document.getElementById("mask-size").textContent = maskResult.value;
-  }
-
-  // Laryngoscope
-  if (bladeResult.value) {
-    document.getElementById("blade-type").textContent = bladeResult.value.type;
-    document.getElementById("blade-size").textContent = `Size ${bladeResult.value.size}`;
-  }
-}
-
-// =============================================================================
-// FLUIDS MODULE
-// =============================================================================
-
-function initFluidsModule() {
-  // Sub-mode buttons
-  document.querySelectorAll(".fluid-option-btn[data-fluid]").forEach(btn => {
-    btn.addEventListener("click", () => {
-      document.querySelectorAll(".fluid-option-btn[data-fluid]").forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-      window.PaedSafe.ui.fluidMode = btn.dataset.fluid;
-      renderFluidsModule();
-    });
-  });
-
-  // Bolus type
-  document.querySelectorAll(".tier-btn[data-bolus]").forEach(btn => {
-    btn.addEventListener("click", () => {
-      document.querySelectorAll(".tier-btn[data-bolus]").forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-      window.PaedSafe.ui.bolusType = btn.dataset.bolus;
-      renderFluidsModule();
-    });
-  });
-
-  // Deficit input
-  document.getElementById("deficit-percent").addEventListener("input", renderFluidsModule);
-
-  // ABL inputs
-  document.getElementById("abl-start-hct").addEventListener("input", renderFluidsModule);
-  document.getElementById("abl-min-hct").addEventListener("input", renderFluidsModule);
-  document.getElementById("prc-hb-rise").addEventListener("input", renderFluidsModule);
-}
-
-function renderFluidsModule() {
-  if (!hasPatient()) return;
-  const patient = getPatientInput();
-  const mode    = window.PaedSafe.ui.fluidMode;
-
-  // Show/hide sub-modules
-  ["maintenance","deficit","bolus","abl"].forEach(m => {
-    document.getElementById(`fluid-${m}`).classList.toggle("hidden", m !== mode);
-  });
-
-  if (mode === "maintenance") {
-    const r = window.PaedSafe.calc.maintenance(patient);
-    if (r.value !== null) {
-      document.getElementById("fluid-maintenance-value").textContent = r.value;
-      document.getElementById("fluid-maintenance-formula").textContent = r.formula;
-      // Extract daily from formula string
-      const daily = r.formula.match(/Daily: ([\d.]+) ml\/day/);
-      document.getElementById("fluid-maintenance-daily").textContent =
-        daily ? `${daily[1]} ml/day` : "—";
-    }
-
-  } else if (mode === "deficit") {
-    const pct = parseFloat(document.getElementById("deficit-percent").value);
-    const r   = window.PaedSafe.calc.deficit(pct, patient);
-    if (r.value !== null && r.value.total !== undefined) {
-      document.getElementById("deficit-total").textContent = r.value.total;
-      document.getElementById("deficit-first").textContent = r.value.firstHour;
-      document.getElementById("deficit-next").textContent  = r.value.next8Hours;
-    }
-
-  } else if (mode === "bolus") {
-    const r = window.PaedSafe.calc.bolus(window.PaedSafe.ui.bolusType, patient);
-    if (r.value !== null) {
-      const valEl = document.getElementById("bolus-result-value");
-      const fmEl  = document.getElementById("bolus-result-formula");
-      if (typeof r.value === "object") {
-        valEl.textContent = `${r.value.min}–${r.value.max}`;
-      } else {
-        valEl.textContent = r.value;
-      }
-      fmEl.textContent = r.formula;
-      fmEl.classList.remove("hidden");
-      document.getElementById("bolus-warning").textContent = r.warning;
-    }
-
-  } else if (mode === "abl") {
-    const startHct = parseFloat(document.getElementById("abl-start-hct").value);
-    const minHct   = parseFloat(document.getElementById("abl-min-hct").value);
-    const r        = window.PaedSafe.calc.abl(startHct, minHct, patient);
-
-    if (r.value !== null && r.value.ebv !== undefined) {
-      document.getElementById("abl-ebv").textContent = r.value.ebv;
-      document.getElementById("abl-abl").textContent = r.value.abl;
-    }
-
-    const hbRise = parseFloat(document.getElementById("prc-hb-rise").value);
-    const prc    = window.PaedSafe.calc.prcVolume(hbRise, patient);
-    if (prc.value !== null) {
-      document.getElementById("prc-result").textContent = prc.value;
-      document.getElementById("prc-formula").textContent = prc.formula;
-      document.getElementById("prc-formula").classList.remove("hidden");
-    }
-  }
-
-  pulseResult(document.querySelector("#screen-fluids .result-container"));
-}
-
-// =============================================================================
-// REGIONAL MODULE
-// =============================================================================
-
-function initRegionalModule() {
-  // Sub-mode
-  document.querySelectorAll(".fluid-option-btn[data-regional]").forEach(btn => {
-    btn.addEventListener("click", () => {
-      document.querySelectorAll(".fluid-option-btn[data-regional]").forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-      window.PaedSafe.ui.regionalMode = btn.dataset.regional;
-      renderRegionalModule();
-    });
-  });
-
-  // LA drug selector
-  document.querySelectorAll(".la-drug-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      document.querySelectorAll(".la-drug-btn").forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-      window.PaedSafe.ui.laDrug = btn.dataset.la;
-      renderRegionalModule();
-    });
-  });
-
-  // Adrenaline toggle
-  document.getElementById("la-plain-btn").addEventListener("click", () => {
-    window.PaedSafe.ui.laWithAdr = false;
-    document.getElementById("la-plain-btn").classList.add("active");
-    document.getElementById("la-adr-btn").classList.remove("active");
-    renderRegionalModule();
-  });
-  document.getElementById("la-adr-btn").addEventListener("click", () => {
-    window.PaedSafe.ui.laWithAdr = true;
-    document.getElementById("la-adr-btn").classList.add("active");
-    document.getElementById("la-plain-btn").classList.remove("active");
-    renderRegionalModule();
-  });
-
-  // Caudal level
-  document.querySelectorAll(".tier-btn[data-level]").forEach(btn => {
-    btn.addEventListener("click", () => {
-      document.querySelectorAll(".tier-btn[data-level]").forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-      window.PaedSafe.ui.caudalLevel = btn.dataset.level;
-      renderRegionalModule();
-    });
-  });
-
-  // Infusion inputs
-  document.getElementById("infusion-dose").addEventListener("input", renderRegionalModule);
-  document.getElementById("infusion-conc").addEventListener("input", renderRegionalModule);
-}
-
-function renderRegionalModule() {
-  if (!hasPatient() && window.PaedSafe.ui.regionalMode !== "last") return;
-  const patient = getPatientInput();
-  const mode    = window.PaedSafe.ui.regionalMode;
-
-  // Show/hide sub-modules
-  ["la-max","caudal","last","infusion"].forEach(m => {
-    const el = document.getElementById(`regional-${m}`);
-    if (el) el.classList.toggle("hidden", m !== mode);
-  });
-
-  if (mode === "la-max") {
-    const r = window.PaedSafe.calc.laMax(
-      window.PaedSafe.ui.laDrug,
-      window.PaedSafe.ui.laWithAdr,
-      patient
-    );
-    const valEl = document.getElementById("la-result-value");
-    const fmEl  = document.getElementById("la-result-formula");
-    const warnEl = document.getElementById("la-warning-banner");
-
-    if (r.value !== null) {
-      valEl.textContent = r.value;
-      fmEl.textContent  = r.formula;
-      fmEl.classList.remove("hidden");
-    } else {
-      valEl.textContent = "—";
-    }
-
-    if (r.warning) {
-      const isDanger = r.warning.includes("🔴") || r.warning.includes("NEONATE");
-      warnEl.textContent = r.warning;
-      warnEl.className = `warning-banner ${isDanger ? "danger" : "amber"}`;
-    } else {
-      warnEl.className = "warning-banner hidden";
-    }
-
-  } else if (mode === "caudal") {
-    const r = window.PaedSafe.calc.caudal(window.PaedSafe.ui.caudalLevel, patient);
-    const warnEl = document.getElementById("caudal-warning-banner");
-
-    if (r.value !== null) {
-      document.getElementById("caudal-result-value").textContent = r.value;
-      document.getElementById("caudal-result-formula").textContent = r.formula;
-      document.getElementById("caudal-result-formula").classList.remove("hidden");
-    }
-
-    if (r.warning && r.warning.includes("🔴")) {
-      warnEl.textContent = r.warning;
-      warnEl.classList.remove("hidden");
-    } else {
-      warnEl.classList.add("hidden");
-    }
-
-  } else if (mode === "last") {
-    const r = window.PaedSafe.calc.intralipid(patient);
-    if (r.value !== null) {
-      document.getElementById("last-bolus").textContent   = r.value.bolusMl;
-      document.getElementById("last-infusion").textContent= r.value.infusionMlPerMin;
-      document.getElementById("last-max").textContent     = r.value.maxCumulativeMl;
-    }
-
-  } else if (mode === "infusion") {
-    const dose = parseFloat(document.getElementById("infusion-dose").value);
-    const conc = parseFloat(document.getElementById("infusion-conc").value);
-    const r    = window.PaedSafe.calc.infusionRate(dose, conc, patient);
-    const valEl = document.getElementById("infusion-result-value");
-    const fmEl  = document.getElementById("infusion-result-formula");
-
-    if (r.value !== null) {
-      valEl.textContent = r.value;
-      fmEl.textContent  = r.formula;
-      fmEl.classList.remove("hidden");
-    } else {
-      valEl.textContent = "—";
-    }
-  }
-}
-
-// =============================================================================
-// EMERGENCY MODULE
-// =============================================================================
-
-function renderEmergencyModule() {
-  const noWeightEl   = document.getElementById("emergency-no-weight");
-  const resultsEl    = document.getElementById("emergency-results");
-
-  if (!hasPatient()) {
-    noWeightEl.classList.remove("hidden");
-    resultsEl.classList.add("hidden");
-    return;
-  }
-
-  noWeightEl.classList.add("hidden");
-  resultsEl.classList.remove("hidden");
-
-  const patient = getPatientInput();
-
-  // Adrenaline — arrest
-  const arrest = window.PaedSafe.calc.adrenalineArrest(patient);
-  if (arrest.value) {
-    document.getElementById("em-arrest-dose").textContent = arrest.value.doseMcg;
-    document.getElementById("em-arrest-vol").textContent  = arrest.value.volumeMl;
-    document.getElementById("em-arrest-formula").textContent = arrest.formula;
-  }
-
-  // Adrenaline — anaphylaxis
-  const ana = window.PaedSafe.calc.adrenalineAnaphylaxis(patient);
-  if (ana.value) {
-    document.getElementById("em-ana-dose").textContent = ana.value.doseMcg;
-    document.getElementById("em-ana-vol").textContent  = ana.value.volumeMl;
-    document.getElementById("em-ana-formula").textContent = ana.formula;
-  }
-
-  // Atropine
-  const atr = window.PaedSafe.calc.atropineBradycardia(patient);
-  if (atr.value !== null) {
-    document.getElementById("em-atropine").textContent = atr.value;
-    document.getElementById("em-atropine-formula").textContent = atr.formula;
-  }
-
-  // Adenosine
-  const aden1 = window.PaedSafe.calc.adenosine(1, patient);
-  const aden2 = window.PaedSafe.calc.adenosine(2, patient);
-  if (aden1.value !== null) document.getElementById("em-aden-1").textContent = aden1.value;
-  if (aden2.value !== null) document.getElementById("em-aden-2").textContent = aden2.value;
-
-  // Glucose
-  const gluc = window.PaedSafe.calc.glucose(patient);
-  if (gluc.value !== null) document.getElementById("em-glucose").textContent = gluc.value;
-
-  // Calcium gluconate
-  const calc = window.PaedSafe.calc.calciumGluconate(patient);
-  if (calc.value !== null) {
-    document.getElementById("em-calcium").textContent =
-      typeof calc.value === "object" ? `${calc.value.min}–${calc.value.max}` : calc.value;
-  }
-
-  // Sodium bicarb
-  const bicarb = window.PaedSafe.calc.sodiumBicarbonate(patient);
-  if (bicarb.value !== null) {
-    document.getElementById("em-bicarb").textContent =
-      typeof bicarb.value === "object" ? `${bicarb.value.min}–${bicarb.value.max}` : bicarb.value;
-    document.getElementById("em-bicarb-note").textContent =
-      isNeonatePatient() ? "Dilute 1:1 with water for injection before administration." : "";
-  }
-}
-
-// =============================================================================
-// NAVIGATION
-// =============================================================================
-
-function initNavigation() {
-  document.querySelectorAll(".nav-tab").forEach(tab => {
-    tab.addEventListener("click", () => {
-      if (!hasPatient() && tab.dataset.tab !== "emergency") {
-        goToSetup();
-        return;
-      }
-      switchTab(tab.dataset.tab);
-    });
-  });
-
-  // Drug detail back button
-  document.getElementById("btn-drug-back").addEventListener("click", showDrugList);
-
-  // Sugammadex tier selector
-  document.querySelectorAll(".tier-btn[data-tier]").forEach(btn => {
-    btn.addEventListener("click", () => {
-      document.querySelectorAll(".tier-btn[data-tier]").forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-      window.PaedSafe.ui.sugarTier = btn.dataset.tier;
-      runDrugCalc();
-    });
-  });
-
-  // Reference toggle
-  document.getElementById("drug-ref-toggle").addEventListener("click", () => {
-    const body    = document.getElementById("drug-ref-body");
-    const chevron = document.getElementById("drug-ref-chevron");
-    const isOpen  = body.classList.toggle("open");
-    chevron.textContent = isOpen ? "▾" : "▸";
-  });
-
-  // Emergency Quick Start buttons (inside emergency screen)
-  document.querySelectorAll(".quickstart-btn[data-qs-emergency]").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const w = parseFloat(btn.dataset.qsWeight);
-      const a = parseInt(btn.dataset.qsAge, 10);
-      quickStart(w, a);
-      renderEmergencyModule();
-    });
-  });
-}
-
-// =============================================================================
-// OFFLINE INDICATOR
-// =============================================================================
-
-function initOfflineIndicator() {
-  const footer = document.getElementById("footer-status");
-  const version = window.PaedSafe.config.version;
-
-  function update() {
-    if (navigator.onLine) {
-      footer.textContent = `Online — v${version}`;
-    } else {
-      footer.textContent = `Offline — trusted cache v${version}`;
-    }
-  }
-
-  update();
-  window.addEventListener("online",  update);
-  window.addEventListener("offline", update);
-}
-
-// =============================================================================
-// DISCLAIMER
-// =============================================================================
-
-function initDisclaimer() {
-  const disclaimerKey = DISCLAIMER_KEY;
-  const shown = localStorage.getItem(disclaimerKey);
-
-  if (!shown) {
-    document.getElementById("screen-disclaimer").classList.remove("hidden");
-  }
-
-  document.getElementById("btn-disclaimer-accept").addEventListener("click", () => {
-    localStorage.setItem(disclaimerKey, "accepted");
-    document.getElementById("screen-disclaimer").classList.add("hidden");
-  });
-}
-
-// =============================================================================
-// VERSION CHECK (atomic version lock)
-// Per 03_technical_architecture.md — version mismatch → hard reload
+// VERSION LOCK CHECK
 // =============================================================================
 
 function checkVersionLock() {
@@ -2851,7 +1781,6 @@ function checkVersionLock() {
   const cachedVersion = localStorage.getItem("paed-safe-cached-version");
 
   if (cachedVersion && cachedVersion !== dataVersion) {
-    // Version mismatch — show overlay and reload
     document.getElementById("screen-version-mismatch").classList.remove("hidden");
     setTimeout(() => window.location.reload(true), 3000);
     return false;
@@ -2862,7 +1791,990 @@ function checkVersionLock() {
 }
 
 // =============================================================================
-// SERVICE WORKER REGISTRATION
+// DISCLAIMER
+// =============================================================================
+
+function initDisclaimer() {
+  const shown = localStorage.getItem(DISCLAIMER_KEY);
+  if (!shown) {
+    document.getElementById("screen-disclaimer").classList.remove("hidden");
+  }
+
+  document.getElementById("btn-disclaimer-accept").addEventListener("click", () => {
+    localStorage.setItem(DISCLAIMER_KEY, "accepted");
+    document.getElementById("screen-disclaimer").classList.add("hidden");
+  });
+}
+
+// =============================================================================
+// OFFLINE INDICATOR
+// =============================================================================
+
+function initOfflineIndicator() {
+  const indicator = document.getElementById("offline-indicator");
+  const update = () => {
+    if (!navigator.onLine) indicator.classList.add("visible");
+    else indicator.classList.remove("visible");
+  };
+  window.addEventListener("online", update);
+  window.addEventListener("offline", update);
+  update();
+}
+
+// =============================================================================
+// SCREEN NAVIGATION
+// =============================================================================
+
+function showScreen(id) {
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  const target = document.getElementById(id);
+  if (target) target.classList.add("active");
+}
+
+// =============================================================================
+// SESSION PERSISTENCE
+// =============================================================================
+
+function persistSession() {
+  const data = {
+    weightKg:     window.PaedSafe.patient.weightKg,
+    ageMonths:    window.PaedSafe.patient.ageMonths,
+    weightSource: window.PaedSafe.patient.weightSource,
+    patientId:    window.PaedSafe.patient.patientId
+  };
+  sessionStorage.setItem(SESSION_KEY, JSON.stringify(data));
+}
+
+function checkResumeSession() {
+  const raw = sessionStorage.getItem(SESSION_KEY);
+  if (!raw) return;
+
+  try {
+    const data = JSON.parse(raw);
+    if (data.weightKg && data.ageMonths >= 0) {
+      const yrs = Math.floor(data.ageMonths / 12);
+      const mos = data.ageMonths % 12;
+      const ageStr = yrs > 0 ? `${yrs}y ${mos}m` : `${mos}m`;
+
+      document.getElementById("resume-text").textContent =
+        `Previous session: ${data.weightKg} kg · ${ageStr}${data.patientId ? " · " + data.patientId : ""}. Resume?`;
+      document.getElementById("resume-prompt").classList.remove("hidden");
+
+      document.getElementById("btn-resume-continue").onclick = () => {
+        setPatient(data.weightKg, data.ageMonths, data.weightSource, data.patientId || "");
+        document.getElementById("resume-prompt").classList.add("hidden");
+        goToModuleSelection();
+      };
+      document.getElementById("btn-resume-new").onclick = () => {
+        sessionStorage.removeItem(SESSION_KEY);
+        document.getElementById("resume-prompt").classList.add("hidden");
+      };
+    }
+  } catch (e) {
+    sessionStorage.removeItem(SESSION_KEY);
+  }
+}
+
+// Inactivity timeout
+let _hiddenAt = null;
+
+function initSessionTimeout() {
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+      _hiddenAt = Date.now();
+    } else {
+      if (_hiddenAt) {
+        const mins = (Date.now() - _hiddenAt) / 60000;
+        if (mins >= window.PaedSafe.config.sessionTimeout) {
+          sessionStorage.removeItem(SESSION_KEY);
+          goToSetup();
+        }
+      }
+      _hiddenAt = null;
+    }
+  });
+}
+
+// =============================================================================
+// PATIENT MANAGEMENT
+// =============================================================================
+
+function setPatient(weightKg, ageMonths, source, patientId) {
+  window.PaedSafe.patient.weightKg     = weightKg;
+  window.PaedSafe.patient.ageMonths    = ageMonths;
+  window.PaedSafe.patient.weightSource = source;
+  window.PaedSafe.patient.patientId    = patientId || "";
+  window.PaedSafe.calc.resetLaSession();
+  updatePatientBar();
+  updateNeonateBanner();
+}
+
+function updatePatientBar() {
+  const { weightKg, ageMonths, weightSource, patientId } = window.PaedSafe.patient;
+  if (!weightKg) return;
+
+  const yrs = Math.floor(ageMonths / 12);
+  const mos = ageMonths % 12;
+  const ageStr = yrs > 0 ? `${yrs}y ${mos}m` : `${mos}m`;
+
+  const pidEl = document.getElementById("bar-pid");
+  if (patientId) {
+    pidEl.textContent = patientId;
+    pidEl.style.display = "inline";
+  } else {
+    pidEl.style.display = "none";
+  }
+
+  document.getElementById("bar-weight").textContent = weightKg.toFixed(1);
+  document.getElementById("bar-age").textContent = ageStr;
+
+  const badge = document.getElementById("est-badge");
+  if (weightSource === "estimated") badge.classList.add("visible");
+  else badge.classList.remove("visible");
+}
+
+function updateNeonateBanner() {
+  const { weightKg, ageMonths } = window.PaedSafe.patient;
+  const banner = document.getElementById("neonate-banner");
+  if (weightKg && (ageMonths < 1 || weightKg < 5)) {
+    banner.classList.add("visible");
+  } else {
+    banner.classList.remove("visible");
+  }
+}
+
+// =============================================================================
+// PATIENT SETUP SCREEN
+// =============================================================================
+
+function initSetupScreen() {
+  const slider     = document.getElementById("weight-slider");
+  const display    = document.getElementById("weight-value");
+  const manual     = document.getElementById("weight-manual");
+  const weightDisp = document.getElementById("weight-display");
+  const pill       = document.getElementById("weight-source-pill");
+  const confirmBtn = document.getElementById("btn-confirm-patient");
+  const weechBtn   = document.getElementById("btn-weech-estimate");
+  const weechPanel = document.getElementById("weech-result-panel");
+
+  // Slider updates weight
+  slider.addEventListener("input", () => {
+    _weightVal = parseFloat(slider.value);
+    display.textContent = _weightVal.toFixed(1);
+    setWeightSource("actual");
+    weechPanel.classList.add("hidden");
+    validateSetupForm();
+  });
+
+  // Tap weight display → toggle manual entry
+  weightDisp.addEventListener("click", () => {
+    manual.classList.toggle("hidden");
+    if (!manual.classList.contains("hidden")) {
+      manual.value = _weightVal.toFixed(1);
+      manual.focus();
+    }
+  });
+
+  // Manual weight entry
+  manual.addEventListener("input", () => {
+    const v = parseFloat(manual.value);
+    if (!isNaN(v) && v > 0 && v <= 150) {
+      _weightVal = v;
+      slider.value = Math.min(v, 80);
+      display.textContent = v.toFixed(1);
+      setWeightSource("actual");
+      weechPanel.classList.add("hidden");
+    }
+    validateSetupForm();
+  });
+
+  // Age inputs — trigger validate + optionally update Weech if panel was open
+  ["age-years", "age-months-input"].forEach(id => {
+    document.getElementById(id).addEventListener("input", () => {
+      validateSetupForm();
+    });
+  });
+
+  // Patient ID doesn't block confirm
+  document.getElementById("patient-id").addEventListener("input", validateSetupForm);
+
+  // Weech estimate button
+  weechBtn.addEventListener("click", () => {
+    const yrs = parseInt(document.getElementById("age-years").value, 10) || 0;
+    const mos = parseInt(document.getElementById("age-months-input").value, 10) || 0;
+    const totalMonths = (yrs * 12) + mos;
+
+    const result = window.PaedSafe.calc.weechWeight(totalMonths);
+
+    if (result.value === null) {
+      document.getElementById("weech-formula-text").textContent = result.warning;
+      document.getElementById("weech-band-text").textContent = "";
+      weechPanel.classList.remove("hidden");
+      return;
+    }
+
+    // Apply to slider + display
+    _weightVal = result.value;
+    slider.value = Math.min(result.value, 80);
+    display.textContent = result.value.toFixed(1);
+    setWeightSource("estimated");
+
+    // Show result panel
+    document.getElementById("weech-formula-text").textContent = `Weech: ${result.formula}`;
+    document.getElementById("weech-band-text").textContent = result.band + " · " + result.reference;
+    weechPanel.classList.remove("hidden");
+
+    validateSetupForm();
+  });
+
+  // Confirm button
+  confirmBtn.addEventListener("click", confirmPatient);
+}
+
+function setWeightSource(source) {
+  window.PaedSafe.patient.weightSource = source;
+  const pill = document.getElementById("weight-source-pill");
+  if (source === "estimated") {
+    pill.textContent = "ESTIMATED";
+    pill.className = "weight-source-pill estimated";
+  } else {
+    pill.textContent = "ACTUAL";
+    pill.className = "weight-source-pill actual";
+  }
+}
+
+function validateSetupForm() {
+  const yrs = parseInt(document.getElementById("age-years").value, 10) || 0;
+  const mos = parseInt(document.getElementById("age-months-input").value, 10) || 0;
+  const ageMonths = (yrs * 12) + mos;
+  const cfg = window.PaedSafe.config;
+
+  const valid = _weightVal > 0 &&
+                _weightVal <= cfg.maxWeightKg &&
+                ageMonths >= 0 &&
+                ageMonths <= cfg.maxAgeMonths;
+
+  document.getElementById("btn-confirm-patient").disabled = !valid;
+}
+
+function confirmPatient() {
+  const yrs       = parseInt(document.getElementById("age-years").value, 10) || 0;
+  const mos       = parseInt(document.getElementById("age-months-input").value, 10) || 0;
+  const ageMonths = (yrs * 12) + mos;
+  const pid       = document.getElementById("patient-id").value.trim();
+  const cfg       = window.PaedSafe.config;
+
+  if (!_weightVal || _weightVal <= 0 || _weightVal > cfg.maxWeightKg) {
+    alert("Please enter a valid weight (0.5–150 kg).");
+    return;
+  }
+  if (ageMonths < 0 || ageMonths > cfg.maxAgeMonths) {
+    alert("Please enter a valid age (0–18 years).");
+    return;
+  }
+
+  setPatient(_weightVal, ageMonths, window.PaedSafe.patient.weightSource, pid);
+  persistSession();
+  goToModuleSelection();
+}
+
+function goToSetup() {
+  window.PaedSafe.ui.state = STATES.PATIENT_SETUP;
+  document.getElementById("patient-bar").classList.remove("visible");
+  document.getElementById("neonate-banner").classList.remove("visible");
+  document.getElementById("bottom-nav").classList.remove("visible");
+  document.getElementById("footer-bar").classList.remove("visible");
+  showScreen("screen-setup");
+  checkResumeSession();
+}
+
+// =============================================================================
+// MODULE SELECTION SCREEN
+// =============================================================================
+
+function goToModuleSelection() {
+  window.PaedSafe.ui.state = STATES.MODULE_SELECTION;
+
+  // Update patient summary in header
+  const { weightKg, ageMonths, weightSource, patientId } = window.PaedSafe.patient;
+  const yrs = Math.floor(ageMonths / 12);
+  const mos = ageMonths % 12;
+  const ageStr = yrs > 0 ? `${yrs}y ${mos}m` : `${mos}m`;
+  const estTag = weightSource === "estimated" ? " · EST. WEIGHT" : "";
+
+  document.getElementById("select-patient-summary").textContent =
+    `${weightKg.toFixed(1)} kg · ${ageStr}${patientId ? " · " + patientId : ""}${estTag}`;
+
+  document.getElementById("patient-bar").classList.add("visible");
+  document.getElementById("bottom-nav").classList.remove("visible");
+  document.getElementById("footer-bar").classList.remove("visible");
+  updatePatientBar();
+  updateNeonateBanner();
+  showScreen("screen-select");
+}
+
+function initModuleSelection() {
+  // Build drug chip grid
+  buildDrugChips();
+
+  // Module toggles
+  ["drug", "airway", "fluids", "regional"].forEach(mod => {
+    const btn = document.getElementById(`${mod}-module-toggle`);
+    if (!btn) return;
+    btn.addEventListener("click", () => {
+      const isOn = btn.classList.contains("on");
+      btn.classList.toggle("on", !isOn);
+
+      if (mod === "drug") {
+        document.getElementById("drug-chip-area").style.display = isOn ? "none" : "block";
+        window.PaedSafe.selection.drugs = isOn ? [] : getAllDrugIds();
+      } else {
+        window.PaedSafe.selection[mod === "airway" ? "airway" : mod] = !isOn;
+      }
+    });
+  });
+
+  // Select all drugs
+  document.getElementById("btn-drug-select-all").addEventListener("click", () => {
+    window.PaedSafe.selection.drugs = getAllDrugIds();
+    document.querySelectorAll(".drug-chip").forEach(c => {
+      c.classList.add("selected");
+      c.classList.remove("unselected");
+    });
+  });
+
+  // Generate worksheet
+  document.getElementById("btn-generate-worksheet").addEventListener("click", generateWorksheet);
+
+  // Back to setup
+  document.getElementById("btn-back-to-setup").addEventListener("click", goToSetup);
+}
+
+function getAllDrugIds() {
+  return window.PaedSafe.data.drugs.map(d => d.id);
+}
+
+function buildDrugChips() {
+  const grid = document.getElementById("drug-chip-grid");
+  grid.innerHTML = "";
+
+  // Default: all selected
+  window.PaedSafe.selection.drugs = getAllDrugIds();
+
+  // Group by category
+  const grouped = {};
+  window.PaedSafe.data.drugs.forEach(drug => {
+    if (!grouped[drug.category]) grouped[drug.category] = [];
+    grouped[drug.category].push(drug);
+  });
+
+  Object.entries(DRUG_CATEGORIES).forEach(([cat, label]) => {
+    if (!grouped[cat]) return;
+
+    // Category separator label
+    const sep = document.createElement("div");
+    sep.style.cssText = "width:100%;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-light);padding:4px 2px 2px;";
+    sep.textContent = label;
+    grid.appendChild(sep);
+
+    grouped[cat].forEach(drug => {
+      const chip = document.createElement("button");
+      chip.className = "drug-chip selected";
+      chip.dataset.drugId = drug.id;
+      chip.textContent = drug.name;
+
+      chip.addEventListener("click", () => {
+        const idx = window.PaedSafe.selection.drugs.indexOf(drug.id);
+        if (idx > -1) {
+          window.PaedSafe.selection.drugs.splice(idx, 1);
+          chip.classList.remove("selected");
+          chip.classList.add("unselected");
+        } else {
+          window.PaedSafe.selection.drugs.push(drug.id);
+          chip.classList.add("selected");
+          chip.classList.remove("unselected");
+        }
+      });
+
+      grid.appendChild(chip);
+    });
+  });
+}
+
+// =============================================================================
+// WORKSHEET GENERATION
+// =============================================================================
+
+function generateWorksheet() {
+  const { weightKg, ageMonths, weightSource, patientId } = window.PaedSafe.patient;
+  const patient = { weightKg, ageMonths, weightSource };
+  const sel = window.PaedSafe.selection;
+
+  const yrs = Math.floor(ageMonths / 12);
+  const mos = ageMonths % 12;
+  const ageStr = yrs > 0 ? `${yrs}y ${mos}m` : `${mos}m`;
+  const estTag = weightSource === "estimated" ? `<span class="worksheet-est-badge">EST. WEIGHT</span>` : "";
+
+  // Worksheet header
+  document.getElementById("ws-patient-name").textContent = patientId || "Patient";
+  document.getElementById("ws-patient-meta").innerHTML =
+    `${weightKg.toFixed(1)} kg · ${ageStr}${estTag}`;
+
+  const content = document.getElementById("worksheet-content");
+  content.innerHTML = "";
+
+  // ---- DRUG DOSING CARD ----
+  if (sel.drugs.length > 0 && document.getElementById("drug-module-toggle").classList.contains("on")) {
+    const drugCard = buildDrugCard(patient);
+    if (drugCard) content.appendChild(drugCard);
+  }
+
+  // ---- AIRWAY CARD ----
+  if (sel.airway) {
+    const airwayCard = buildAirwayCard(patient);
+    if (airwayCard) content.appendChild(airwayCard);
+  }
+
+  // ---- FLUIDS CARD ----
+  if (sel.fluids) {
+    const fluidsCard = buildFluidsCard(patient);
+    if (fluidsCard) content.appendChild(fluidsCard);
+  }
+
+  // ---- REGIONAL CARD ----
+  if (sel.regional) {
+    const regionalCard = buildRegionalCard(patient);
+    if (regionalCard) content.appendChild(regionalCard);
+  }
+
+  // New patient button at bottom
+  const newBtn = document.createElement("button");
+  newBtn.className = "btn-secondary ws-new-patient-btn";
+  newBtn.textContent = "← New Patient";
+  newBtn.addEventListener("click", () => {
+    sessionStorage.removeItem(SESSION_KEY);
+    goToSetup();
+  });
+  content.appendChild(newBtn);
+
+  // Footer
+  const footer = document.createElement("div");
+  footer.style.cssText = "text-align:center;font-size:11px;color:var(--text-light);padding:12px 0 4px;";
+  footer.textContent = "PaedSafe · Dr. John Afam · v1.1.0";
+  content.appendChild(footer);
+
+  // Show worksheet
+  window.PaedSafe.ui.state = STATES.WORKSHEET;
+  window.PaedSafe.ui.activeTab = "worksheet";
+  document.getElementById("patient-bar").classList.add("visible");
+  document.getElementById("bottom-nav").classList.add("visible");
+  document.getElementById("footer-bar").classList.add("visible");
+  updateNavTabs("worksheet");
+  showScreen("screen-worksheet");
+}
+
+function makeWsCard(icon, title) {
+  const card = document.createElement("div");
+  card.className = "ws-card";
+
+  const header = document.createElement("div");
+  header.className = "ws-card-header open";
+  header.innerHTML = `
+    <div class="ws-card-title">${icon} ${title}</div>
+    <span class="ws-chevron">▼</span>
+  `;
+
+  const body = document.createElement("div");
+  body.className = "ws-card-body open";
+
+  header.addEventListener("click", () => {
+    const isOpen = header.classList.contains("open");
+    header.classList.toggle("open", !isOpen);
+    body.classList.toggle("open", !isOpen);
+  });
+
+  card.appendChild(header);
+  card.appendChild(body);
+  return { card, body };
+}
+
+function buildDrugCard(patient) {
+  const { card, body } = makeWsCard("💊", "Drug Dosing");
+
+  // Group selected drugs by category
+  const grouped = {};
+  window.PaedSafe.selection.drugs.forEach(drugId => {
+    const drug = window.PaedSafe.data.drugs.find(d => d.id === drugId);
+    if (!drug) return;
+    if (!grouped[drug.category]) grouped[drug.category] = [];
+    grouped[drug.category].push(drug);
+  });
+
+  Object.entries(DRUG_CATEGORIES).forEach(([cat, label]) => {
+    if (!grouped[cat]) return;
+
+    const catLabel = document.createElement("div");
+    catLabel.className = "ws-section-sub";
+    catLabel.textContent = label;
+    body.appendChild(catLabel);
+
+    grouped[cat].forEach(drug => {
+      let result;
+      try {
+        if (drug.id === "sugammadex") {
+          result = window.PaedSafe.calc.sugammadex("moderate", patient);
+        } else {
+          result = window.PaedSafe.calc.drug(drug.id, patient);
+        }
+      } catch (e) {
+        result = { value: null, unit: "", formula: "", warning: "Calculation error", reference: "" };
+      }
+
+      const row = document.createElement("div");
+      row.className = "ws-drug-row";
+
+      let doseDisplay = "—";
+      let unitDisplay = "";
+
+      if (result.value !== null) {
+        if (typeof result.value === "object" && result.value.min !== undefined) {
+          doseDisplay = `${result.value.min}–${result.value.max}`;
+        } else if (typeof result.value === "object" && result.value.moderate !== undefined) {
+          doseDisplay = `${result.value.moderate}`;
+        } else {
+          doseDisplay = String(result.value);
+        }
+        unitDisplay = result.unit || "";
+      }
+
+      row.innerHTML = `
+        <div class="ws-drug-summary">
+          <div>
+            <div class="ws-drug-name">${drug.name}</div>
+            <div class="ws-drug-cat">${drug.routes.join(" / ")}</div>
+          </div>
+          <div class="ws-drug-dose">
+            <div class="ws-dose-value">${doseDisplay}</div>
+            <div class="ws-dose-unit">${unitDisplay}</div>
+          </div>
+        </div>
+      `;
+
+      // Expand on tap to show details
+      const detail = document.createElement("div");
+      detail.className = "ws-drug-detail";
+      detail.innerHTML = `
+        <div class="ws-detail-formula">${result.formula || "—"}</div>
+        ${result.warning ? `<div class="ws-detail-warning${result.warning.includes("⚠") && !result.warning.includes("🔴") ? " amber" : ""}">${result.warning}</div>` : ""}
+        <div class="ws-detail-ref">${result.reference || ""}</div>
+      `;
+
+      row.addEventListener("click", () => {
+        const isOpen = detail.classList.contains("open");
+        detail.classList.toggle("open", !isOpen);
+      });
+
+      row.appendChild(detail);
+      body.appendChild(row);
+    });
+  });
+
+  return card;
+}
+
+function buildAirwayCard(patient) {
+  const { card, body } = makeWsCard("🫁", "Airway Sizing");
+
+  const ettResult  = window.PaedSafe.calc.ett(patient);
+  const lmaResult  = window.PaedSafe.calc.lma(patient);
+  const maskResult = window.PaedSafe.calc.faceMask(patient);
+  const bladeResult= window.PaedSafe.calc.laryngoscope(patient);
+
+  const rows = [];
+
+  // ETT
+  if (ettResult.value) {
+    const v = ettResult.value;
+    if (v.uncuffedId) rows.push(["ETT (uncuffed)", `${v.uncuffedId} mm`]);
+    if (v.cuffedId)   rows.push(["ETT (cuffed)",   `${v.cuffedId} mm`]);
+    rows.push(["ETT length (oral)", `${v.oralLength} cm`]);
+    if (v.nasalLength) rows.push(["ETT length (nasal)", `${v.nasalLength} cm`]);
+    if (v.suctionCatheterCuffed) rows.push(["Suction catheter", `${v.suctionCatheterCuffed} Fr`]);
+    else if (v.suctionCatheterUncuffed) rows.push(["Suction catheter", `${v.suctionCatheterUncuffed} Fr`]);
+  }
+
+  // LMA
+  if (lmaResult.value) {
+    rows.push(["LMA size", `${lmaResult.value.size}`]);
+    rows.push(["LMA cuff max", `${lmaResult.value.maxCuffMl} ml`]);
+  }
+
+  // Face mask
+  if (maskResult.value !== null) {
+    rows.push(["Face mask", `Size ${maskResult.value}`]);
+  }
+
+  // Laryngoscope
+  if (bladeResult.value) {
+    rows.push(["Laryngoscope", `${bladeResult.value.type}, size ${bladeResult.value.size}`]);
+  }
+
+  rows.forEach(([label, value]) => {
+    const row = document.createElement("div");
+    row.className = "ws-info-row";
+    row.innerHTML = `
+      <span class="ws-info-label">${label}</span>
+      <span class="ws-info-value-sm">${value}</span>
+    `;
+    body.appendChild(row);
+  });
+
+  // Warning
+  if (ettResult.warning) {
+    const warn = document.createElement("div");
+    warn.className = "warning-banner amber";
+    warn.style.margin = "12px 16px";
+    warn.style.fontSize = "13px";
+    warn.textContent = ettResult.warning;
+    body.appendChild(warn);
+  }
+
+  return card;
+}
+
+function buildFluidsCard(patient) {
+  const { card, body } = makeWsCard("💧", "Fluids");
+
+  const maintResult = window.PaedSafe.calc.maintenance(patient);
+
+  // Maintenance
+  const sub1 = document.createElement("div");
+  sub1.className = "ws-section-sub";
+  sub1.textContent = "Maintenance (4-2-1)";
+  body.appendChild(sub1);
+
+  if (maintResult.value !== null) {
+    const row = document.createElement("div");
+    row.className = "ws-info-row";
+    row.innerHTML = `
+      <span class="ws-info-label">Rate</span>
+      <span class="ws-info-value">${maintResult.value} <span style="font-size:14px;font-weight:600;">ml/hr</span></span>
+    `;
+    body.appendChild(row);
+
+    const fRow = document.createElement("div");
+    fRow.className = "ws-info-row";
+    fRow.innerHTML = `<span class="ws-info-label" style="font-size:12px;">${maintResult.formula}</span><span></span>`;
+    body.appendChild(fRow);
+  }
+
+  if (maintResult.warning) {
+    const warn = document.createElement("div");
+    warn.className = "warning-banner amber";
+    warn.style.margin = "8px 16px 4px";
+    warn.style.fontSize = "13px";
+    warn.textContent = maintResult.warning;
+    body.appendChild(warn);
+  }
+
+  // Bolus reference
+  const sub2 = document.createElement("div");
+  sub2.className = "ws-section-sub";
+  sub2.textContent = "Bolus (reference)";
+  body.appendChild(sub2);
+
+  const bolusTypes = [
+    { label: "Isotonic crystalloid", type: "crystalloid" },
+    { label: "Colloid / albumin",    type: "colloid" }
+  ];
+
+  bolusTypes.forEach(({ label, type }) => {
+    try {
+      const r = window.PaedSafe.calc.bolus(type, patient);
+      if (r.value) {
+        const row = document.createElement("div");
+        row.className = "ws-info-row";
+        row.innerHTML = `
+          <span class="ws-info-label">${label}</span>
+          <span class="ws-info-value-sm">${r.value.min}–${r.value.max} ml</span>
+        `;
+        body.appendChild(row);
+      }
+    } catch(e) {}
+  });
+
+  return card;
+}
+
+function buildRegionalCard(patient) {
+  const { card, body } = makeWsCard("📍", "Regional Anaesthesia");
+  const calc = window.PaedSafe.calc;
+
+  // Bupivacaine
+  const sub1 = document.createElement("div");
+  sub1.className = "ws-section-sub";
+  sub1.textContent = "Bupivacaine";
+  body.appendChild(sub1);
+
+  [false, true].forEach(withAdr => {
+    try {
+      const r = calc.laMax("bupivacaine", withAdr, patient);
+      const row = document.createElement("div");
+      row.className = "ws-info-row";
+      row.innerHTML = `
+        <span class="ws-info-label">${withAdr ? "With adrenaline" : "Plain"}</span>
+        <span class="ws-info-value-sm">${r.value !== null ? r.value + " mg max" : "—"}</span>
+      `;
+      body.appendChild(row);
+    } catch(e) {}
+  });
+
+  // Lignocaine
+  const sub2 = document.createElement("div");
+  sub2.className = "ws-section-sub";
+  sub2.textContent = "Lignocaine";
+  body.appendChild(sub2);
+
+  [false, true].forEach(withAdr => {
+    try {
+      const r = calc.laMax("lignocaine", withAdr, patient);
+      const row = document.createElement("div");
+      row.className = "ws-info-row";
+      row.innerHTML = `
+        <span class="ws-info-label">${withAdr ? "With adrenaline" : "Plain"}</span>
+        <span class="ws-info-value-sm">${r.value !== null ? r.value + " mg max" : "—"}</span>
+      `;
+      body.appendChild(row);
+    } catch(e) {}
+  });
+
+  // Caudal
+  const sub3 = document.createElement("div");
+  sub3.className = "ws-section-sub";
+  sub3.textContent = "Caudal Block (Bupivacaine 0.25%)";
+  body.appendChild(sub3);
+
+  ["sacral", "lumbar", "thoracic"].forEach(level => {
+    try {
+      const r = calc.caudal(level, patient);
+      const row = document.createElement("div");
+      row.className = "ws-info-row";
+      row.innerHTML = `
+        <span class="ws-info-label" style="text-transform:capitalize;">${level} level</span>
+        <span class="ws-info-value-sm">${r.value !== null ? r.value + " ml" : "—"}</span>
+      `;
+      body.appendChild(row);
+    } catch(e) {}
+  });
+
+  // LAST
+  const sub4 = document.createElement("div");
+  sub4.className = "ws-section-sub";
+  sub4.textContent = "LAST — Intralipid 20%";
+  body.appendChild(sub4);
+
+  try {
+    const r = calc.intralipid(patient);
+    if (r.value) {
+      const v = r.value;
+      [
+        ["Bolus (over 1 min)", `${v.bolusMl} ml`],
+        ["Infusion", `${v.infusionMlPerMin} ml/min`],
+        ["Max cumulative", `${v.maxCumulativeMl} ml`]
+      ].forEach(([label, val]) => {
+        const row = document.createElement("div");
+        row.className = "ws-info-row";
+        row.innerHTML = `<span class="ws-info-label">${label}</span><span class="ws-info-value-sm">${val}</span>`;
+        body.appendChild(row);
+      });
+
+      const warn = document.createElement("div");
+      warn.className = "warning-banner danger";
+      warn.style.margin = "8px 16px 4px";
+      warn.style.fontSize = "13px";
+      warn.textContent = r.warning;
+      body.appendChild(warn);
+    }
+  } catch(e) {}
+
+  return card;
+}
+
+// =============================================================================
+// EMERGENCY MODULE
+// =============================================================================
+
+function initEmergency() {
+  document.querySelectorAll(".emergency-qs-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const w = parseFloat(btn.dataset.qsWeight);
+      const a = parseInt(btn.dataset.qsAge, 10);
+      setPatient(w, a, "estimated", "");
+      persistSession();
+      renderEmergency();
+    });
+  });
+}
+
+function renderEmergency() {
+  const { weightKg, ageMonths, weightSource } = window.PaedSafe.patient;
+  const noWtDiv    = document.getElementById("emergency-no-weight");
+  const cardsDiv   = document.getElementById("emergency-cards");
+
+  if (!weightKg) {
+    noWtDiv.classList.remove("hidden");
+    cardsDiv.innerHTML = "";
+    return;
+  }
+
+  noWtDiv.classList.add("hidden");
+  cardsDiv.innerHTML = "";
+
+  const patient = { weightKg, ageMonths, weightSource };
+  const calc = window.PaedSafe.calc;
+
+  // Helper to make a card
+  function mkCard(type, title) {
+    const div = document.createElement("div");
+    div.className = `emergency-card ${type}`;
+    div.innerHTML = `<div class="ec-title">${title}</div>`;
+    return div;
+  }
+
+  function mkResultRow(label, value, unit, formula, concentration, warning, cardType) {
+    const div = document.createElement("div");
+    div.innerHTML = `
+      ${concentration ? `<div class="ec-concentration">${concentration}</div>` : ""}
+      <div class="ec-result">${value !== null ? value : "—"} <span class="ec-unit">${unit}</span></div>
+      <div class="ec-formula">${formula}</div>
+      ${warning ? `<div class="ec-warning">${warning}</div>` : ""}
+    `;
+    return div;
+  }
+
+  // Adrenaline arrest
+  try {
+    const r = calc.adrenalineArrest(patient);
+    const card = mkCard("arrest", "🔴 Adrenaline — Cardiac Arrest");
+    card.appendChild(mkResultRow("", r.value, r.unit, r.formula,
+      "⚠ Use 1:10,000 (10 mcg/ml) IV/IO only", r.warning, "arrest"));
+    cardsDiv.appendChild(card);
+  } catch(e) {}
+
+  // Adrenaline anaphylaxis
+  try {
+    const r = calc.adrenalineAnaphylaxis(patient);
+    const card = mkCard("anaphylaxis", "💜 Adrenaline — Anaphylaxis");
+    card.appendChild(mkResultRow("", r.value, r.unit, r.formula,
+      "⚠ Use 1:1,000 (1 mg/ml) IM only", r.warning, "anaphylaxis"));
+    cardsDiv.appendChild(card);
+  } catch(e) {}
+
+  // Atropine bradycardia
+  try {
+    const r = calc.atropineBradycardia(patient);
+    const card = mkCard("standard", "Atropine (bradycardia)");
+    card.appendChild(mkResultRow("", r.value !== null ? (typeof r.value === "object" ? `${r.value.min}–${r.value.max}` : r.value) : "—",
+      r.unit, r.formula, null, r.warning));
+    cardsDiv.appendChild(card);
+  } catch(e) {}
+
+  // Adenosine SVT
+  try {
+    const r1 = calc.adenosine("first", patient);
+    const r2 = calc.adenosine("second", patient);
+    const card = mkCard("standard", "Adenosine (SVT)");
+    card.innerHTML += `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;text-align:center;">
+        <div>
+          <div style="font-size:11px;color:var(--text-sec);margin-bottom:4px;">1st dose</div>
+          <div class="ec-result" style="font-size:32px;">${r1.value} <span class="ec-unit" style="font-size:14px;">${r1.unit}</span></div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--text-sec);margin-bottom:4px;">2nd dose</div>
+          <div class="ec-result" style="font-size:32px;">${r2.value} <span class="ec-unit" style="font-size:14px;">${r2.unit}</span></div>
+        </div>
+      </div>
+      <div class="ec-formula">Rapid IV push — flush immediately</div>
+    `;
+    cardsDiv.appendChild(card);
+  } catch(e) {}
+
+  // Glucose
+  try {
+    const r = calc.glucose(patient);
+    const card = mkCard("standard", "Glucose (hypoglycaemia)");
+    card.appendChild(mkResultRow("", r.value, r.unit, r.formula, null, r.warning));
+    cardsDiv.appendChild(card);
+  } catch(e) {}
+
+  // Calcium gluconate
+  try {
+    const r = calc.calciumGluconate(patient);
+    const card = mkCard("standard", "Calcium Gluconate 10%");
+    card.appendChild(mkResultRow("",
+      typeof r.value === "object" ? `${r.value.min}–${r.value.max}` : r.value,
+      r.unit, r.formula, null, r.warning));
+    cardsDiv.appendChild(card);
+  } catch(e) {}
+
+  // Sodium bicarb
+  try {
+    const r = calc.sodiumBicarbonate(patient);
+    const card = mkCard("standard", "Sodium Bicarbonate");
+    card.appendChild(mkResultRow("",
+      typeof r.value === "object" ? `${r.value.min}–${r.value.max}` : r.value,
+      r.unit, r.formula, null, r.warning));
+    cardsDiv.appendChild(card);
+  } catch(e) {}
+
+  // EST weight warning
+  if (weightSource === "estimated") {
+    const warn = document.createElement("div");
+    warn.className = "warning-banner amber";
+    warn.textContent = "⚠ ESTIMATED WEIGHT in use — verify all emergency doses clinically.";
+    cardsDiv.appendChild(warn);
+  }
+}
+
+// =============================================================================
+// NAVIGATION
+// =============================================================================
+
+function initNavigation() {
+  document.querySelectorAll(".nav-tab").forEach(tab => {
+    tab.addEventListener("click", () => {
+      const t = tab.dataset.tab;
+      switchTab(t);
+    });
+  });
+
+  document.getElementById("btn-change-patient").addEventListener("click", goToSetup);
+  document.getElementById("btn-emergency-bar").addEventListener("click", () => switchTab("emergency"));
+}
+
+function switchTab(tab) {
+  window.PaedSafe.ui.activeTab = tab;
+  updateNavTabs(tab);
+
+  if (tab === "emergency") {
+    window.PaedSafe.ui.state = STATES.EMERGENCY_MODE;
+    renderEmergency();
+    showScreen("screen-emergency");
+  } else if (tab === "worksheet") {
+    window.PaedSafe.ui.state = STATES.WORKSHEET;
+    showScreen("screen-worksheet");
+  }
+}
+
+function updateNavTabs(active) {
+  document.querySelectorAll(".nav-tab").forEach(t => {
+    t.classList.toggle("active", t.dataset.tab === active);
+  });
+}
+
+// =============================================================================
+// SERVICE WORKER
 // =============================================================================
 
 function registerServiceWorker() {
@@ -2877,40 +2789,39 @@ function registerServiceWorker() {
 // =============================================================================
 
 document.addEventListener("DOMContentLoaded", () => {
-  // 1. Version lock check
+
+  // 1. Version lock
   if (!checkVersionLock()) return;
 
   // 2. Disclaimer
   initDisclaimer();
 
-  // 3. Register SW
+  // 3. Service worker
   registerServiceWorker();
 
   // 4. Offline indicator
   initOfflineIndicator();
 
-  // 5. Setup screen
+  // 5. Session timeout
+  initSessionTimeout();
+
+  // 6. Init screens
   initSetupScreen();
-
-  // 6. Drug list
-  buildDrugList();
-  initDrugSearch();
-
-  // 7. Fluids
-  initFluidsModule();
-
-  // 8. Regional
-  initRegionalModule();
-
-  // 9. Navigation
+  initModuleSelection();
+  initEmergency();
   initNavigation();
 
-  // 10. Check for resume session
-  checkResumeSession();
+  // 7. Intro screen button
+  document.getElementById("btn-get-started").addEventListener("click", () => {
+    window.PaedSafe.ui.state = STATES.PATIENT_SETUP;
+    showScreen("screen-setup");
+    checkResumeSession();
+  });
 
-  // 11. Show setup screen
-  window.PaedSafe.ui.state = STATES.PATIENT_SETUP;
-  showScreen("screen-setup");
+  // 8. Show intro
+  window.PaedSafe.ui.state = STATES.INTRO;
+  showScreen("screen-intro");
+
 });
 </script>
 

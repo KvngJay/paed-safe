@@ -1074,7 +1074,72 @@ function calcInfusionRate(doseMcgKgMin, concentrationMcgMl, { weightKg, ageMonth
 
 
 // =============================================================================
-// SECTION 11 — ASSEMBLE ON NAMESPACE
+// SECTION 11 — WEECH WEIGHT ESTIMATOR
+// Source: Weech AA. Pediatrics 1954 (age-based weight estimation formula)
+// Three age bands — returns estimated weight and formula string.
+// weightSource is ALWAYS "estimated" when this function result is used.
+// =============================================================================
+
+/**
+ * Estimate weight using Weech formula.
+ * @param {number} ageMonths - age in completed months
+ * @returns {{ value: number|null, formula: string, band: string, reference: string, warning: string }}
+ */
+function calcWeechWeight(ageMonths) {
+  try {
+    if (typeof ageMonths !== "number" || isNaN(ageMonths) || ageMonths < 0) {
+      return { value: null, formula: "", band: "", reference: "", warning: "Enter age to estimate weight." };
+    }
+
+    const ageYears = ageMonths / 12;
+
+    if (ageMonths < 12) {
+      // Infants 0–11 completed months
+      const weight = (ageMonths + 9) / 2;
+      return {
+        value:     Math.round(weight * 10) / 10,
+        formula:   `(${ageMonths} + 9) ÷ 2 = ${(Math.round(weight * 10) / 10)} kg`,
+        band:      "Infant (0–11 months)",
+        reference: "Weech AA. Pediatrics 1954",
+        warning:   "ESTIMATED weight from Weech formula — verify actual weight before use."
+      };
+    } else if (ageYears <= 6) {
+      // Children 1–6 years
+      const weight = (ageYears * 2) + 8;
+      return {
+        value:     Math.round(weight * 10) / 10,
+        formula:   `(${Math.floor(ageYears)} × 2) + 8 = ${(Math.round(weight * 10) / 10)} kg`,
+        band:      "Child (1–6 years)",
+        reference: "Weech AA. Pediatrics 1954",
+        warning:   "ESTIMATED weight from Weech formula — verify actual weight before use."
+      };
+    } else if (ageYears <= 12) {
+      // Children 7–12 years
+      const weight = ((ageYears * 7) - 5) / 2;
+      return {
+        value:     Math.round(weight * 10) / 10,
+        formula:   `((${Math.floor(ageYears)} × 7) − 5) ÷ 2 = ${(Math.round(weight * 10) / 10)} kg`,
+        band:      "Child (7–12 years)",
+        reference: "Weech AA. Pediatrics 1954",
+        warning:   "ESTIMATED weight from Weech formula — verify actual weight before use."
+      };
+    } else {
+      return {
+        value:     null,
+        formula:   "",
+        band:      "",
+        reference: "Weech AA. Pediatrics 1954",
+        warning:   "Weech formula not valid for age >12 years — enter actual weight."
+      };
+    }
+  } catch (e) {
+    return { value: null, formula: "", band: "", reference: "", warning: "Weech calculation error — enter weight manually." };
+  }
+}
+
+
+// =============================================================================
+// SECTION 12 — ASSEMBLE ON NAMESPACE
 // =============================================================================
 
 window.PaedSafe        = window.PaedSafe || {};
@@ -1113,6 +1178,9 @@ window.PaedSafe.calc   = Object.freeze({
 
   // Infusions
   infusionRate:         calcInfusionRate,
+
+  // Weight estimation
+  weechWeight:          calcWeechWeight,
 
   // LA session management (called by index.html on patient reset)
   resetLaSession:       _resetLaSession
