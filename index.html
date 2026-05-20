@@ -2167,8 +2167,8 @@ function buildDrugChips() {
   const grid = document.getElementById("drug-chip-grid");
   grid.innerHTML = "";
 
-  // Default: all selected
-  window.PaedSafe.selection.drugs = getAllDrugIds();
+  // Default: none selected
+  window.PaedSafe.selection.drugs = [];
 
   // Group by category
   const grouped = {};
@@ -2188,7 +2188,7 @@ function buildDrugChips() {
 
     grouped[cat].forEach(drug => {
       const chip = document.createElement("button");
-      chip.className = "drug-chip selected";
+      chip.className = "drug-chip unselected";
       chip.dataset.drugId = drug.id;
       chip.textContent = drug.name;
 
@@ -2269,7 +2269,7 @@ function generateWorksheet() {
   // Footer
   const footer = document.createElement("div");
   footer.style.cssText = "text-align:center;font-size:11px;color:var(--text-light);padding:12px 0 4px;";
-  footer.textContent = "PaedSafe · Dr. John Afam · v1.1.0";
+  footer.textContent = "PaedSafe · Dr. John Afam · v2.0.0";
   content.appendChild(footer);
 
   // Show worksheet
@@ -2525,7 +2525,7 @@ function buildRegionalCard(patient) {
   sub1.textContent = "Bupivacaine";
   body.appendChild(sub1);
 
-  [false, true].forEach(withAdr => {
+[false, true].forEach(withAdr => {
     try {
       const r = calc.laMax("bupivacaine", withAdr, patient);
       const row = document.createElement("div");
@@ -2535,6 +2535,10 @@ function buildRegionalCard(patient) {
         <span class="ws-info-value-sm">${r.value !== null ? r.value + " mg max" : "—"}</span>
       `;
       body.appendChild(row);
+      const formulaRow = document.createElement("div");
+      formulaRow.style.cssText = "font-size:11px;color:var(--text-sec);padding:0 16px 8px;";
+      formulaRow.textContent = r.formula || "";
+      body.appendChild(formulaRow);
     } catch(e) {}
   });
 
@@ -2554,9 +2558,12 @@ function buildRegionalCard(patient) {
         <span class="ws-info-value-sm">${r.value !== null ? r.value + " mg max" : "—"}</span>
       `;
       body.appendChild(row);
+      const formulaRow = document.createElement("div");
+      formulaRow.style.cssText = "font-size:11px;color:var(--text-sec);padding:0 16px 8px;";
+      formulaRow.textContent = r.formula || "";
+      body.appendChild(formulaRow);
     } catch(e) {}
   });
-
   // Caudal
   const sub3 = document.createElement("div");
   sub3.className = "ws-section-sub";
@@ -2665,12 +2672,13 @@ function renderEmergency() {
   try {
     const r = calc.adrenalineArrest(patient);
     const card = mkCard("arrest", "🔴 Adrenaline — Cardiac Arrest");
-    card.appendChild(mkResultRow("", r.value, r.unit, r.formula,
-      "⚠ Use 1:10,000 (10 mcg/ml) IV/IO only", r.warning, "arrest"));
+    card.appendChild(mkResultRow("",
+      `${r.value.doseMcg} mcg | ${r.value.volumeMl} ml of 1:10,000`,
+      "", r.formula, "⚠ Use 1:10,000 (10 mcg/ml) IV/IO only", r.warning, "arrest"));
     cardsDiv.appendChild(card);
   } catch(e) {}
 
-  // Adrenaline anaphylaxis
+ // Adrenaline anaphylaxis
   try {
     const r = calc.adrenalineAnaphylaxis(patient);
     const card = mkCard("anaphylaxis", "💜 Adrenaline — Anaphylaxis");
@@ -2690,8 +2698,8 @@ function renderEmergency() {
 
   // Adenosine SVT
   try {
-    const r1 = calc.adenosine("first", patient);
-    const r2 = calc.adenosine("second", patient);
+    const r1 = calc.adenosine(1, patient);
+    const r2 = calc.adenosine(2, patient);
     const card = mkCard("standard", "Adenosine (SVT)");
     card.innerHTML += `
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;text-align:center;">

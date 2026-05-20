@@ -30,7 +30,7 @@ const PAEDSAFE_CONFIG = {
     weech: {
       bands: [
         { label: "Infant (0–11 months)",  minMonths: 0,  maxMonths: 11,  formula: "(months + 9) ÷ 2" },
-        { label: "Child (1–6 years)",     minMonths: 12, maxMonths: 72,  formula: "(years × 2) + 8"   },
+        { label: "Child (1–6 years)",     minMonths: 12, maxMonths: 83,  formula: "(years × 2) + 8"   },
         { label: "Child (7–12 years)",    minMonths: 84, maxMonths: 144, formula: "((years × 7) − 5) ÷ 2" }
       ],
       reference: "Weech AA. Pediatrics 1954",
@@ -350,17 +350,19 @@ const _drugs = [
     id:          "pethidine",
     name:        "Pethidine",
     category:    "opioid",
-    routes:      ["IM"],
+    routes:      ["IV", "IM"],
     doseMin:     1,
     doseMax:     2,
     unit:        "mg/kg",
     maxDose:     null,
     warnings: [
       "AVOID IN NEONATES.",
-      "Accumulation of norpethidine metabolite may cause seizures with repeated dosing."
+      "IV: give slowly — titrate to effect.",
+      "IM: anterolateral thigh preferred in children.",
+      "Accumulation of norpethidine metabolite may cause seizures with repeated dosing — avoid repeated doses."
     ],
     reference:   "BNF for Children (current ed)",
-    version:     "1.0.0",
+    version:     "1.1.0",
     neonateFlag: true
   },
   {
