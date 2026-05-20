@@ -1381,7 +1381,7 @@
     <strong>By continuing, you confirm that you are a qualified healthcare provider and will independently verify all outputs before use.</strong>
   </div>
   <button class="btn-primary" id="btn-disclaimer-accept">I Understand — Continue</button>
-  <div class="overlay-footer">PaedSafe v1.1.0 · Dr. John Afam-Osemene</div>
+  <div class="overlay-footer">PaedSafe v2.0.0 · Dr. John Afam-Osemene</div>
 </div>
 
 
@@ -1444,7 +1444,7 @@
       </div>
     </div>
 
-    <div class="intro-version">v1.1.0</div>
+    <div class="intro-version">v2.0.0</div>
   </div><!-- /screen-intro -->
 
 
@@ -1693,7 +1693,7 @@
 
   <!-- FOOTER -->
   <div id="footer-bar">
-    PaedSafe &middot; Dr. John Afam &middot; v1.1.0
+    PaedSafe &middot; Dr. John Afam &middot; v2.0.0
   </div>
 
 </div><!-- /app -->
@@ -1782,7 +1782,16 @@ function checkVersionLock() {
 
   if (cachedVersion && cachedVersion !== dataVersion) {
     document.getElementById("screen-version-mismatch").classList.remove("hidden");
-    setTimeout(() => window.location.reload(true), 3000);
+
+    // Write new version BEFORE reload — prevents infinite loop
+    localStorage.setItem("paed-safe-cached-version", dataVersion);
+
+    clearStaleServiceWorkerState()
+      .catch(err => console.warn("PaedSafe: failed to clear stale SW state —", err))
+      .finally(() => {
+        window.location.reload();
+      });
+
     return false;
   }
 

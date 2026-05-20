@@ -22,7 +22,9 @@ const FILES_TO_CACHE = [
   "./data.js",
   "./calc.js",
   "./sw.js",
-  "./manifest.json"
+  "./manifest.json",
+  "./icons/icon-192.png",
+  "./icons/icon-512.png"
 ];
 
 // =============================================================================
