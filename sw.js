@@ -36,11 +36,6 @@ self.addEventListener("install", event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => cache.addAll(FILES_TO_CACHE))
-      .then(() => {
-        // Do not call skipWaiting() here — wait for activate event.
-        // skipWaiting() on activate ensures the old SW fully finishes
-        // before the new one takes over, preventing mid-session SW swap.
-      })
       .catch(err => {
         // Install failure — SW will not activate.
         // Browser falls back to network on next load.
@@ -55,6 +50,11 @@ self.addEventListener("install", event => {
 //   - New SW activates on next app open without waiting for tabs to close
 //   - All open clients immediately use the new SW
 //   - Old caches from previous versions are purged
+//
+// FIX: skipWaiting() is called INSIDE event.waitUntil() promise chain,
+// before clients.claim(). Previously it was called outside the chain,
+// causing a race condition where the new SW might not take over before
+// the page finished loading — resulting in stale cached files being served.
 // =============================================================================
 self.addEventListener("activate", event => {
   event.waitUntil(
@@ -69,15 +69,12 @@ self.addEventListener("activate", event => {
             })
         );
       })
+      .then(() => self.skipWaiting())
       .then(() => self.clients.claim())
       .catch(err => {
         console.error("PaedSafe SW: activation error —", err);
       })
   );
-
-  // Take over immediately — deterministic, no user action required.
-  // Per 03_technical_architecture.md: "no update banner, no force-reload button."
-  self.skipWaiting();
 });
 
 // =============================================================================
