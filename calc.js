@@ -1103,12 +1103,12 @@ function calcWeechWeight(ageMonths) {
         reference: "Weech AA. Pediatrics 1954",
         warning:   "ESTIMATED weight from Weech formula — verify actual weight before use."
       };
-    } else if (ageYears <= 6) {
+    } else if (ageYears < 7) {
       // Children 1–6 years
       const weight = (ageYears * 2) + 8;
       return {
         value:     Math.round(weight * 10) / 10,
-        formula:   `(${Math.floor(ageYears)} × 2) + 8 = ${(Math.round(weight * 10) / 10)} kg`,
+      formula:   `(${ageYears.toFixed(1)} × 2) + 8 = ${(Math.round(weight * 10) / 10)} kg`,
         band:      "Child (1–6 years)",
         reference: "Weech AA. Pediatrics 1954",
         warning:   "ESTIMATED weight from Weech formula — verify actual weight before use."
@@ -1136,7 +1136,56 @@ function calcWeechWeight(ageMonths) {
     return { value: null, formula: "", band: "", reference: "", warning: "Weech calculation error — enter weight manually." };
   }
 }
+// =============================================================================
+// SECTION 11b — FASTING DEFICIT CALCULATOR
+// Formula: hours fasted × maintenance rate (ml/hr)
+// Replacement: 50% in first hour, 50% over next 2 hours
+// Max hours fasted: 8
+// =============================================================================
 
+function calcFastingDeficit(hoursFasted, { weightKg, ageMonths, weightSource }) {
+  try {
+    const validationError = _validateInputs({ weightKg, ageMonths });
+    if (validationError) return _invalidResult(validationError);
+
+    if (typeof hoursFasted !== "number" || hoursFasted <= 0 || hoursFasted > 8) {
+      return _invalidResult("Enter hours fasted (1–8) to calculate fasting deficit.");
+    }
+
+    // Calculate maintenance rate first (Holliday-Segar)
+    let maintenanceRate = 0;
+    if (weightKg <= 10) {
+      maintenanceRate = 4 * weightKg;
+    } else if (weightKg <= 20) {
+      maintenanceRate = 40 + 2 * (weightKg - 10);
+    } else {
+      maintenanceRate = 60 + 1 * (weightKg - 20);
+    }
+
+    const totalMl     = _round1dp(hoursFasted * maintenanceRate);
+    const firstHrMl   = _round1dp(totalMl * 0.5);
+    const next2HrRate = _round1dp((totalMl * 0.5) / 2);
+
+    return {
+      value:   { totalMl, firstHourMl: firstHrMl, next2HrRate },
+      unit:    "ml",
+      formula: `${hoursFasted} hrs × ${_round1dp(maintenanceRate)} ml/hr = ${totalMl} ml total | First hour: ${firstHrMl} ml | Next 2 hrs: ${next2HrRate} ml/hr`,
+      warning: "Replace 50% in first hour, remaining 50% over next 2 hours — adjust per clinical response. Max 8 hours entered.",
+      reference: "Holliday & Segar, Pediatrics 1957; BNF for Children",
+      trace: {
+        input: { weightKg, ageMonths, weightSource, hoursFasted },
+        steps: [
+          `Maintenance rate (4-2-1): ${_round1dp(maintenanceRate)} ml/hr`,
+          `Total deficit: ${hoursFasted} × ${_round1dp(maintenanceRate)} = ${totalMl} ml`,
+          `50% first hour: ${firstHrMl} ml`,
+          `50% over next 2 hrs: ${next2HrRate} ml/hr`
+        ]
+      }
+    };
+  } catch (e) {
+    return _invalidResult("Calculation error — re-enter patient data.");
+  }
+}
 
 // =============================================================================
 // SECTION 12 — ASSEMBLE ON NAMESPACE
@@ -1181,6 +1230,7 @@ window.PaedSafe.calc   = Object.freeze({
 
   // Weight estimation
   weechWeight:          calcWeechWeight,
+  fastingDeficit:       calcFastingDeficit,
 
   // LA session management (called by index.html on patient reset)
   resetLaSession:       _resetLaSession

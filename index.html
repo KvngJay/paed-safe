@@ -1399,7 +1399,7 @@
     </div>
     <div class="bar-actions">
       <button class="btn-emergency-bar" id="btn-emergency-bar">🚨</button>
-      <button class="btn-change" id="btn-change-patient">Change</button>
+      <button class="btn-change" id="btn-change-patient">Edit</button>
     </div>
   </div>
 
@@ -1576,7 +1576,7 @@
             <span class="module-icon">🫁</span>
             <div>
               <div class="module-name">Airway Sizing</div>
-              <div class="module-desc">ETT · LMA · Face mask · Blade · Suction</div>
+              <div class="module-desc">ETT · LMA · Face mask · Blade</div>
             </div>
           </div>
           <button class="module-toggle on" id="airway-module-toggle" data-module="airway"></button>
@@ -1590,7 +1590,7 @@
             <span class="module-icon">💧</span>
             <div>
               <div class="module-name">Fluids</div>
-              <div class="module-desc">Maintenance · Deficit · Bolus · Blood</div>
+              <div class="module-desc">Maintenance · Deficit  · Blood</div>
             </div>
           </div>
           <button class="module-toggle on" id="fluids-module-toggle" data-module="fluids"></button>
@@ -1738,12 +1738,14 @@ const STATES = {
 
 // All drug categories and their display labels
 const DRUG_CATEGORIES = {
-  induction:  "Induction",
-  nmba:       "Muscle Relaxants",
-  opioid:     "Opioids",
-  reversal:   "Reversal",
-  antiemetic: "Antiemetics",
-  analgesic:  "Analgesics"
+  induction:      "Induction",
+  nmba:           "Muscle Relaxants",
+  opioid:         "Opioids",
+  reversal:       "Reversal",
+  antiemetic:     "Antiemetics",
+  analgesic:      "Analgesics",
+  sedation:       "Sedation / Premedication",
+  anticonvulsant: "Anticonvulsants"
 };
 
 // =============================================================================
@@ -1775,7 +1777,18 @@ let _weightVal = 10.0;
 // =============================================================================
 // VERSION LOCK CHECK
 // =============================================================================
-
+function clearStaleServiceWorkerState() {
+  return new Promise((resolve) => {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.getRegistrations()
+        .then(regs => Promise.all(regs.map(r => r.unregister())))
+        .then(resolve)
+        .catch(resolve);
+    } else {
+      resolve();
+    }
+  });
+}
 function checkVersionLock() {
   const dataVersion   = window.PaedSafe.config.version;
   const cachedVersion = localStorage.getItem("paed-safe-cached-version");
@@ -2408,8 +2421,6 @@ function buildAirwayCard(patient) {
     if (v.cuffedId)   rows.push(["ETT (cuffed)",   `${v.cuffedId} mm`]);
     rows.push(["ETT length (oral)", `${v.oralLength} cm`]);
     if (v.nasalLength) rows.push(["ETT length (nasal)", `${v.nasalLength} cm`]);
-    if (v.suctionCatheterCuffed) rows.push(["Suction catheter", `${v.suctionCatheterCuffed} Fr`]);
-    else if (v.suctionCatheterUncuffed) rows.push(["Suction catheter", `${v.suctionCatheterUncuffed} Fr`]);
   }
 
   // LMA
@@ -2485,35 +2496,52 @@ function buildFluidsCard(patient) {
     warn.textContent = maintResult.warning;
     body.appendChild(warn);
   }
+  // Fasting deficit
+  const sub3 = document.createElement("div");
+  sub3.className = "ws-section-sub";
+  sub3.textContent = "Fasting Deficit";
+  body.appendChild(sub3);
 
-  // Bolus reference
-  const sub2 = document.createElement("div");
-  sub2.className = "ws-section-sub";
-  sub2.textContent = "Bolus (reference)";
-  body.appendChild(sub2);
+  const fastingRow = document.createElement("div");
+  fastingRow.className = "ws-info-row";
+  fastingRow.innerHTML = `
+    <span class="ws-info-label">Hours fasted</span>
+    <input type="number" id="fasting-hours-input" min="1" max="8" placeholder="1–8"
+      style="width:64px;padding:6px;border:1px solid var(--border-mid);border-radius:6px;font-size:15px;text-align:center;">
+  `;
+  body.appendChild(fastingRow);
 
-  const bolusTypes = [
-    { label: "Isotonic crystalloid", type: "crystalloid" },
-    { label: "Colloid / albumin",    type: "colloid" }
-  ];
+  const fastingResult = document.createElement("div");
+  fastingResult.id = "fasting-result-block";
+  fastingResult.style.cssText = "padding:0 16px 8px;";
+  body.appendChild(fastingResult);
 
-  bolusTypes.forEach(({ label, type }) => {
-    try {
-      const r = window.PaedSafe.calc.bolus(type, patient);
-      if (r.value) {
-        const row = document.createElement("div");
-        row.className = "ws-info-row";
-        row.innerHTML = `
-          <span class="ws-info-label">${label}</span>
-          <span class="ws-info-value-sm">${r.value.min}–${r.value.max} ml</span>
-        `;
-        body.appendChild(row);
-      }
-    } catch(e) {}
+  body.querySelector("#fasting-hours-input") && body.querySelector("#fasting-hours-input").addEventListener("input", () => {
+    const hrs = parseFloat(document.getElementById("fasting-hours-input").value);
+    const r = window.PaedSafe.calc.fastingDeficit(hrs, patient);
+    const el = document.getElementById("fasting-result-block");
+    if (r.value) {
+      el.innerHTML = `
+        <div class="ws-info-row">
+          <span class="ws-info-label">Total deficit</span>
+          <span class="ws-info-value">${r.value.totalMl} <span style="font-size:14px;font-weight:600;">ml</span></span>
+        </div>
+        <div class="ws-info-row">
+          <span class="ws-info-label">First hour</span>
+          <span class="ws-info-value-sm">${r.value.firstHourMl} ml</span>
+        </div>
+        <div class="ws-info-row">
+          <span class="ws-info-label">Next 2 hrs</span>
+          <span class="ws-info-value-sm">${r.value.next2HrRate} ml/hr</span>
+        </div>
+        <div class="ws-info-row" style="font-size:12px;color:var(--text-sec);">${r.formula}</div>
+        ${r.warning ? `<div class="warning-banner amber" style="margin:6px 0;font-size:12px;">${r.warning}</div>` : ""}
+      `;
+    } else {
+      el.innerHTML = `<div style="font-size:13px;color:var(--text-sec);">${r.warning}</div>`;
+    }
   });
 
-  return card;
-}
 
 function buildRegionalCard(patient) {
   const { card, body } = makeWsCard("📍", "Regional Anaesthesia");
@@ -2532,13 +2560,18 @@ function buildRegionalCard(patient) {
       row.className = "ws-info-row";
       row.innerHTML = `
         <span class="ws-info-label">${withAdr ? "With adrenaline" : "Plain"}</span>
-        <span class="ws-info-value-sm">${r.value !== null ? r.value + " mg max" : "—"}</span>
+        <span class="ws-info-value-sm">${r.value !== null ? r.value + " mg" : "—"}</span>
       `;
       body.appendChild(row);
-      const formulaRow = document.createElement("div");
-      formulaRow.style.cssText = "font-size:11px;color:var(--text-sec);padding:0 16px 8px;";
-      formulaRow.textContent = r.formula || "";
-      body.appendChild(formulaRow);
+      if (r.value !== null) {
+        const detailRow = document.createElement("div");
+        detailRow.style.cssText = "font-size:11px;color:var(--text-sec);padding:0 16px 8px;";
+        detailRow.innerHTML = `
+          Safe limit: ${r.mgPerKg} mg/kg · Max: ${r.value} mg<br>
+          Volume (0.5%): ${r.volumes.bupivacaine05} ml
+        `;
+        body.appendChild(detailRow);
+      }
     } catch(e) {}
   });
 
@@ -2548,20 +2581,25 @@ function buildRegionalCard(patient) {
   sub2.textContent = "Lignocaine";
   body.appendChild(sub2);
 
-  [false, true].forEach(withAdr => {
+ [false, true].forEach(withAdr => {
     try {
-      const r = calc.laMax("lignocaine", withAdr, patient);
+      const r = calc.laMax("bupivacaine", withAdr, patient);
       const row = document.createElement("div");
       row.className = "ws-info-row";
       row.innerHTML = `
         <span class="ws-info-label">${withAdr ? "With adrenaline" : "Plain"}</span>
-        <span class="ws-info-value-sm">${r.value !== null ? r.value + " mg max" : "—"}</span>
+        <span class="ws-info-value-sm">${r.value !== null ? r.value + " mg" : "—"}</span>
       `;
       body.appendChild(row);
-      const formulaRow = document.createElement("div");
-      formulaRow.style.cssText = "font-size:11px;color:var(--text-sec);padding:0 16px 8px;";
-      formulaRow.textContent = r.formula || "";
-      body.appendChild(formulaRow);
+      if (r.value !== null) {
+        const detailRow = document.createElement("div");
+        detailRow.style.cssText = "font-size:11px;color:var(--text-sec);padding:0 16px 8px;";
+        detailRow.innerHTML = `
+          Safe limit: ${r.mgPerKg} mg/kg · Max: ${r.value} mg<br>
+          Volume (0.5%): ${r.volumes.bupivacaine05} ml
+        `;
+        body.appendChild(detailRow);
+      }
     } catch(e) {}
   });
   // Caudal
@@ -2682,7 +2720,7 @@ function renderEmergency() {
   try {
     const r = calc.adrenalineAnaphylaxis(patient);
     const card = mkCard("anaphylaxis", "💜 Adrenaline — Anaphylaxis");
-    card.appendChild(mkResultRow("", r.value, r.unit, r.formula,
+    card.appendChild(mkResultRow("", `${r.value.doseMcg} mcg | ${r.value.volumeMl} ml of 1:1,000`, "", r.formula,
       "⚠ Use 1:1,000 (1 mg/ml) IM only", r.warning, "anaphylaxis"));
     cardsDiv.appendChild(card);
   } catch(e) {}

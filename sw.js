@@ -89,46 +89,68 @@ self.addEventListener("activate", event => {
 // This means the app works fully offline after first load.
 // External requests (none expected) fall through to network only.
 // =============================================================================
+// Files that must always be fresh when online — network first
+const NETWORK_FIRST = ["index.html", "data.js", "calc.js"];
+
 self.addEventListener("fetch", event => {
-  // Only handle same-origin GET requests
   if (event.request.method !== "GET") return;
 
-  event.respondWith(
-    caches.match(event.request)
-      .then(cachedResponse => {
-        if (cachedResponse) {
-          return cachedResponse;
-        }
+  const url = new URL(event.request.url);
+  const isNetworkFirst = NETWORK_FIRST.some(f => url.pathname.endsWith(f));
 
-        // Not in cache — fetch from network and cache for next time
-        return fetch(event.request)
-          .then(networkResponse => {
-            // Only cache valid responses — not errors, not opaque responses
-            if (
-              !networkResponse ||
-              networkResponse.status !== 200 ||
-              networkResponse.type !== "basic"
-            ) {
-              return networkResponse;
-            }
-
-            // Clone response — it's a stream, can only be consumed once
+  if (isNetworkFirst) {
+    // Network first — always try to get fresh copy, fall back to cache offline
+    event.respondWith(
+      fetch(event.request)
+        .then(networkResponse => {
+          if (
+            networkResponse &&
+            networkResponse.status === 200 &&
+            networkResponse.type === "basic"
+          ) {
             const responseToCache = networkResponse.clone();
             caches.open(CACHE_NAME)
               .then(cache => cache.put(event.request, responseToCache))
-              .catch(err => console.warn("PaedSafe SW: failed to cache network response —", err));
-
-            return networkResponse;
-          })
-          .catch(() => {
-            // Network failed and not in cache.
-            // For HTML navigation requests, return index.html from cache
-            // so the app shell loads even on full offline first-open fail.
+              .catch(err => console.warn("PaedSafe SW: failed to cache —", err));
+          }
+          return networkResponse;
+        })
+        .catch(() => {
+          // Offline — serve from cache
+          return caches.match(event.request).then(cached => {
+            if (cached) return cached;
             if (event.request.destination === "document") {
               return caches.match("./index.html");
             }
-            // For other assets, fail silently — SW cannot recover
           });
-      })
-  );
+        })
+    );
+  } else {
+    // Cache first — icons, manifest, sw.js itself
+    event.respondWith(
+      caches.match(event.request)
+        .then(cachedResponse => {
+          if (cachedResponse) return cachedResponse;
+          return fetch(event.request)
+            .then(networkResponse => {
+              if (
+                networkResponse &&
+                networkResponse.status === 200 &&
+                networkResponse.type === "basic"
+              ) {
+                const responseToCache = networkResponse.clone();
+                caches.open(CACHE_NAME)
+                  .then(cache => cache.put(event.request, responseToCache))
+                  .catch(err => console.warn("PaedSafe SW: failed to cache —", err));
+              }
+              return networkResponse;
+            })
+            .catch(() => {
+              if (event.request.destination === "document") {
+                return caches.match("./index.html");
+              }
+            });
+        })
+    );
+  }
 });
