@@ -21,8 +21,8 @@
 // =============================================================================
 
 const PAEDSAFE_CONFIG = {
-  version:        "1.1.0",
-  cacheName:      "paed-safe-v1.1.0",
+  version:        "2.0.0",
+  cacheName:      "paed-safe-v2.0.0",
   sessionTimeout: 30,       // minutes before inactive session is discarded
   maxWeightKg:    150,
   maxAgeMonths:   216,      // 18 years

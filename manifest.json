@@ -2,7 +2,7 @@
   "name": "PaedSafe — Paediatric Anaesthesia Calculator",
   "short_name": "PaedSafe",
   "description": "Offline-first paediatric anaesthesia calculator — drug dosing, airway sizing, fluid management, and regional anaesthesia for Nigerian clinical practice.",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "start_url": "./index.html",
   "display": "standalone",
   "orientation": "portrait",
