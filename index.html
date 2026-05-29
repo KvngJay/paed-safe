@@ -1811,6 +1811,7 @@ function checkVersionLock() {
   localStorage.setItem("paed-safe-cached-version", dataVersion);
   return true;
 }
+
 // =============================================================================
 // DISCLAIMER
 // =============================================================================
@@ -2543,8 +2544,9 @@ function buildFluidsCard(patient) {
       el.innerHTML = `<div style="font-size:13px;color:var(--text-sec);">${r.warning}</div>`;
     }
   });
-} //
 
+  return card;
+}
 
 function buildRegionalCard(patient) {
   const { card, body } = makeWsCard("📍", "Regional Anaesthesia");
@@ -2870,7 +2872,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initNavigation();
 
   // 7. Intro screen button
- document.getElementById("btn-get-started").addEventListener("click", () => {
+  document.getElementById("btn-get-started").addEventListener("click", () => {
     const disclaimerAccepted = localStorage.getItem(DISCLAIMER_KEY);
     if (!disclaimerAccepted) {
       document.getElementById("screen-disclaimer").classList.remove("hidden");
