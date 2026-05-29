@@ -1822,9 +1822,12 @@ function initDisclaimer() {
     document.getElementById("screen-disclaimer").classList.remove("hidden");
   }
 
-  document.getElementById("btn-disclaimer-accept").addEventListener("click", () => {
+document.getElementById("btn-disclaimer-accept").addEventListener("click", () => {
     localStorage.setItem(DISCLAIMER_KEY, "accepted");
     document.getElementById("screen-disclaimer").classList.add("hidden");
+    window.PaedSafe.ui.state = STATES.PATIENT_SETUP;
+    showScreen("screen-setup");
+    checkResumeSession();
   });
 }
 
@@ -2867,10 +2870,15 @@ document.addEventListener("DOMContentLoaded", () => {
   initNavigation();
 
   // 7. Intro screen button
-  document.getElementById("btn-get-started").addEventListener("click", () => {
-    window.PaedSafe.ui.state = STATES.PATIENT_SETUP;
-    showScreen("screen-setup");
-    checkResumeSession();
+ document.getElementById("btn-get-started").addEventListener("click", () => {
+    const disclaimerAccepted = localStorage.getItem(DISCLAIMER_KEY);
+    if (!disclaimerAccepted) {
+      document.getElementById("screen-disclaimer").classList.remove("hidden");
+    } else {
+      window.PaedSafe.ui.state = STATES.PATIENT_SETUP;
+      showScreen("screen-setup");
+      checkResumeSession();
+    }
   });
 
   // 8. Show intro
