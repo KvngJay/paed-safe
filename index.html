@@ -1693,7 +1693,7 @@
 
   <!-- FOOTER -->
   <div id="footer-bar">
-    PaedSafe · Dr. John Afam · v2.1.0
+    PaedSafe &middot; Dr. John Afam &middot; v2.0.0
   </div>
 
 </div><!-- /app -->
@@ -1811,20 +1811,17 @@ function checkVersionLock() {
   localStorage.setItem("paed-safe-cached-version", dataVersion);
   return true;
 }
-
 // =============================================================================
 // DISCLAIMER
 // =============================================================================
 
-document.getElementById("btn-disclaimer-accept").addEventListener("click", () => {
-    localStorage.setItem(DISCLAIMER_KEY, "accepted");
-    document.getElementById("screen-disclaimer").classList.add("hidden");
-    window.PaedSafe.ui.state = STATES.PATIENT_SETUP;
-    showScreen("screen-setup");
-    checkResumeSession();
-  });
+function initDisclaimer() {
+  const shown = localStorage.getItem(DISCLAIMER_KEY);
+  if (!shown) {
+    document.getElementById("screen-disclaimer").classList.remove("hidden");
+  }
 
-document.getElementById("btn-disclaimer-accept").addEventListener("click", () => {
+  document.getElementById("btn-disclaimer-accept").addEventListener("click", () => {
     localStorage.setItem(DISCLAIMER_KEY, "accepted");
     document.getElementById("screen-disclaimer").classList.add("hidden");
     window.PaedSafe.ui.state = STATES.PATIENT_SETUP;
